@@ -9,7 +9,7 @@
           </div>
           <div class="control-item">
             <span class="label">Random seed</span>
-            <var-input v-model.number="randomSeed" type="number" placeholder="Seed" />
+            <var-input v-model="randomSeed" type="text" placeholder="Seed" />
           </div>
         </div>
       </template>
@@ -31,15 +31,12 @@
 
     <var-card class="controls-card" title="Sample list">
       <var-list>
-        <var-cell v-for="square in squares" :key="square.id" border>
-          <template #title>Sample {{ square.id }}</template>
-          <template #desc>
-            <div class="sample-row">
-              <var-input v-model.number="square.num" type="number" placeholder="Number" />
-              <div class="sample-result">{{ square.result?.toFixed(4) || '-' }}</div>
-              <var-button type="danger" size="small" @click="removeSquare(square.id)">Remove</var-button>
-            </div>
-          </template>
+        <var-cell v-for="square in squares" :key="square.id" border :title="`Sample ${square.id}`">
+          <div class="sample-row">
+            <var-input v-model="square.num" type="number" placeholder="Number" />
+            <div class="sample-result">{{ square.result?.toFixed(4) || '-' }}</div>
+            <var-button type="danger" size="small" @click="removeSquare(square.id)">Remove</var-button>
+          </div>
         </var-cell>
       </var-list>
     </var-card>
@@ -77,10 +74,11 @@ export default defineComponent({
     const visibleCanvas = ref<HTMLCanvasElement | null>(null)
     let offscreenCanvas: HTMLCanvasElement | null = null
     const sampleSize = ref<number>(20)
-    const randomSeed = ref<number>()
+    const randomSeed = ref<string>('')
     const uploadedImg = ref<string>('')
     const fileInput = ref<HTMLInputElement | null>(null)
-    const squares = ref<{ id: number; x: number; y: number; size: number; num?: number; result?: number; stdDev?: number }[]>([])
+    type SamplePoint = { id: number; x: number; y: number; size: number; num?: string; result?: number; stdDev?: number }
+    const squares = ref<SamplePoint[]>([])
     const squareIdCounter = ref<number>(1)
     const currentImg = ref<HTMLImageElement | null>(null)
     const scale = ref<number>(1)
@@ -231,8 +229,8 @@ export default defineComponent({
       const ctx = offscreenCanvas.getContext('2d')
       if (!ctx) return
 
-      const seed = randomSeed.value || 42
-      const random = seedrandom(seed.toString())
+      const seed = randomSeed.value || '42'
+      const random = seedrandom(seed)
 
       squares.value = squares.value.map((square) => {
         const half = square.size / 2
@@ -243,9 +241,10 @@ export default defineComponent({
           const fullY = square.y / scale.value - half / scale.value + random() * (square.size / scale.value)
 
           const pixel = ctx.getImageData(Math.floor(fullX), Math.floor(fullY), 1, 1).data
-          const R = pixel[0] / 255
-          const G = pixel[1] / 255
-          const B = pixel[2] / 255
+          const [r = 0, g = 0, b = 0] = pixel
+          const R = r / 255
+          const G = g / 255
+          const B = b / 255
 
           try {
             const calculate = new Function('R', 'G', 'B', `return ${formula.value}`)
@@ -273,9 +272,11 @@ export default defineComponent({
       updateChart()
     }
 
-    function calculateRegression(data: number[][], weights?: number[]) {
+    function calculateRegression(data: Array<[number, number]>, weights: number[] = []) {
       const n = data.length
       if (n < 2) return null
+
+      const weightArr = weights ?? []
 
       let sumW = 0
       let sumX = 0
@@ -284,8 +285,10 @@ export default defineComponent({
       let sumXX = 0
 
       for (let i = 0; i < n; i++) {
-        const w = weights ? weights[i] : 1
-        const [x, y] = data[i]
+        const pair = data[i]
+        if (!pair) continue
+        const w = weightArr[i] ?? 1
+        const [x, y] = pair
 
         sumW += w
         sumX += w * x
@@ -303,8 +306,10 @@ export default defineComponent({
       const yMean = sumY / sumW
 
       for (let i = 0; i < n; i++) {
-        const w = weights ? weights[i] : 1
-        const [x, y] = data[i]
+        const pair = data[i]
+        if (!pair) continue
+        const w = weightArr[i] ?? 1
+        const [x, y] = pair
         const yFit = slope * x + intercept
         SSres += w * Math.pow(y - yFit, 2)
         SStot += w * Math.pow(y - yMean, 2)
@@ -316,12 +321,17 @@ export default defineComponent({
     }
 
     function updateChart() {
-      const validData = squares.value.filter(
-        (square) => square.num !== undefined && square.result !== undefined && !isNaN(Number(square.num)) && !isNaN(Number(square.result)),
-      )
+      const isCompleteSample = (square: SamplePoint): square is SamplePoint & { num: number; result: number } =>
+        square.num !== undefined &&
+        square.result !== undefined &&
+        !isNaN(Number(square.num)) &&
+        !isNaN(Number(square.result))
 
-      const x = validData.map((d) => Number(d.num))
-      const y = validData.map((d) => Number(d.result))
+      const validData = squares.value.filter(isCompleteSample)
+
+      const pairs = validData.map((d) => [Number(d.num), Number(d.result)] as [number, number])
+      const x = pairs.map(([val]) => val)
+      const y = pairs.map(([, val]) => val)
       const error_y = validData.map((d) => Number(d.stdDev) || 0)
 
       let traces: any[] = []
@@ -346,19 +356,13 @@ export default defineComponent({
         }
         traces.push(scatterTrace)
 
-        let weights: number[] | undefined
-        switch (weightMethod.value) {
-          case 'direct':
-            weights = error_y.map((sigma) => (sigma > 0 ? 1 / sigma : 1))
-            break
-          case 'instrument':
-            weights = error_y.map((sigma) => (sigma > 0 ? 1 / (sigma * sigma) : 1))
-            break
-          default:
-            weights = undefined
-        }
+        const weights = error_y.map((sigma) => {
+          if (weightMethod.value === 'direct') return sigma > 0 ? 1 / sigma : 1
+          if (weightMethod.value === 'instrument') return sigma > 0 ? 1 / (sigma * sigma) : 1
+          return 1
+        })
 
-        const regression = calculateRegression(x.map((x, i) => [x, y[i]]), weights)
+        const regression = calculateRegression(pairs, weightMethod.value === 'none' ? [] : weights)
         if (regression && x.length >= 2) {
           const xMin = Math.min(...x)
           const xMax = Math.max(...x)

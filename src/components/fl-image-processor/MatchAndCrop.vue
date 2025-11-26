@@ -27,7 +27,7 @@
           >
             <var-button type="primary">Upload images</var-button>
           </var-uploader>
-          <var-progress :value="progress" type="linear" track-color="#e5e7eb" />
+          <var-progress :value="progress" track-color="#e5e7eb" />
         </div>
 
         <var-list>

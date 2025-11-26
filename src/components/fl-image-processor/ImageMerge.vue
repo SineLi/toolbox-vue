@@ -4,11 +4,11 @@
       <div class="controls-grid">
         <div class="control-item">
           <span class="label">Spacing</span>
-          <var-slider v-model="localSpacing" :min="0" :max="120" step="1" track-color="#e5e7eb" />
+          <var-slider v-model="localSpacing" :min="0" :max="120" :step="1" track-color="#e5e7eb" />
         </div>
         <div class="control-item">
           <span class="label">Frame size</span>
-          <var-slider v-model="localFrameWidth" :min="0" :max="120" step="1" track-color="#e5e7eb" />
+          <var-slider v-model="localFrameWidth" :min="0" :max="120" :step="1" track-color="#e5e7eb" />
         </div>
         <div class="control-item">
           <span class="label">Background</span>
@@ -16,7 +16,7 @@
         </div>
         <div class="control-item">
           <span class="label">Font size</span>
-          <var-input v-model.number="localFontSize" type="number" min="10" />
+          <var-input v-model="localFontSize" type="number" :min="10" />
         </div>
         <div class="control-item">
           <span class="label">Font family</span>
@@ -45,10 +45,10 @@
           <var-input
             class="caption-input"
             size="small"
-            v-model="orderedImages[index].text"
+            v-model="orderedImages[index]!.text"
             placeholder="Enter caption"
             @keyup.enter="focusNextInput(index)"
-            :ref="(el) => setInputRef(el, index)"
+            :ref="(el: any) => setInputRef(el, index)"
           />
         </div>
       </div>
@@ -78,10 +78,10 @@ export default defineComponent({
   setup(props, { emit }) {
     const canvas = ref<HTMLCanvasElement | null>(null)
     const fullResCanvas = ref<HTMLCanvasElement | null>(null)
-    const localSpacing = ref(10)
-    const localFrameWidth = ref(50)
+    const localSpacing = ref<number>(10)
+    const localFrameWidth = ref<number>(50)
     const localBackgroundColor = ref('#000000')
-    const localFontSize = ref(16)
+    const localFontSize = ref<string>('16')
     const localFontFamily = ref('sans-serif')
     const localFontColor = ref('#fff')
 
@@ -168,11 +168,13 @@ export default defineComponent({
         ctx.fillRect(0, 0, totalWidth, canvasHeight)
         let currentX = 0
         for (let i = 0; i < scaledImgs.length; i++) {
-          const { img, width, height } = scaledImgs[i]
+          const item = scaledImgs[i]
+          if (!item) continue
+          const { img, width, height } = item
           ctx.drawImage(img, currentX + frameWidth, frameWidth, width, height)
-          const caption = orderedImages.value[i].text || ''
+          const caption = orderedImages.value[i]?.text || ''
           if (caption) {
-            ctx.font = `${localFontSize.value}px ${localFontFamily.value}`
+            ctx.font = `${Number(localFontSize.value)}px ${localFontFamily.value}`
             ctx.textAlign = 'center'
             ctx.fillStyle = localFontColor.value
             ctx.fillText(caption, currentX + frameWidth + width / 2, frameWidth + height + captionHeight / 1.5)
@@ -225,10 +227,11 @@ export default defineComponent({
         let currentX = 0
         for (let i = 0; i < imgs.length; i++) {
           const img = imgs[i]
+          if (!img) continue
           ctx.drawImage(img, currentX + frameWidthDownload, frameWidthDownload)
-          const caption = orderedImages.value[i].text || ''
+          const caption = orderedImages.value[i]?.text || ''
           if (caption) {
-            ctx.font = `${localFontSize.value * downloadScale}px ${localFontFamily.value}`
+            ctx.font = `${Number(localFontSize.value) * downloadScale}px ${localFontFamily.value}`
             ctx.textAlign = 'center'
             ctx.fillStyle = localFontColor.value
             ctx.fillText(
@@ -273,11 +276,13 @@ export default defineComponent({
           if (oldIndex === undefined || newIndex === undefined) return
           const newOrderedImages = [...orderedImages.value]
           const [movedItem] = newOrderedImages.splice(oldIndex, 1)
+          if (!movedItem) return
           newOrderedImages.splice(newIndex, 0, movedItem)
 
           if (scaledImgsCache.value.length === orderedImages.value.length) {
             const cacheArr = [...scaledImgsCache.value]
             const [movedCache] = cacheArr.splice(oldIndex, 1)
+            if (!movedCache) return
             cacheArr.splice(newIndex, 0, movedCache)
             scaledImgsCache.value = cacheArr
           }

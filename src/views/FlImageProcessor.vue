@@ -1,5 +1,5 @@
-﻿<script setup lang="ts">
-import { computed, onUnmounted, ref } from 'vue'
+<script setup lang="ts">
+import { computed, onUnmounted, ref, watch } from 'vue'
 import MatchAndCrop from '../components/fl-image-processor/MatchAndCrop.vue'
 import ImageMerge from '../components/fl-image-processor/ImageMerge.vue'
 import ImageRegression from '../components/fl-image-processor/ImageRegression.vue'
@@ -23,6 +23,8 @@ const processedImages = ref<ProcessedImage[]>([])
 const fullRes = ref('')
 const nextDisable = ref(false)
 const maxStep = steps.length - 1
+const stepHistory = ref<number[]>([])
+const isNavigatingBack = ref(false)
 
 const hasCroppedImages = computed(() => processedImages.value.length > 0)
 const canGoNext = computed(() => {
@@ -31,6 +33,21 @@ const canGoNext = computed(() => {
   if (step.value === 1) return Boolean(fullRes.value)
   return true
 })
+const hasBackHistory = computed(() => stepHistory.value.length > 0)
+
+watch(
+  step,
+  (newVal, oldVal) => {
+    if (isNavigatingBack.value) {
+      isNavigatingBack.value = false
+      return
+    }
+    if (oldVal !== undefined && oldVal !== newVal) {
+      stepHistory.value.push(oldVal)
+    }
+  },
+  { flush: 'sync' },
+)
 
 const handleProcessingStart = () => {
   nextDisable.value = true
@@ -71,6 +88,16 @@ const nextStep = () => {
 
 const jumpTo = (target: number) => {
   step.value = target
+}
+
+const goBackStep = () => {
+  const prev = stepHistory.value.pop()
+  if (prev === undefined) {
+    step.value = -1
+    return
+  }
+  isNavigatingBack.value = true
+  step.value = prev
 }
 
 onUnmounted(() => {
@@ -137,8 +164,11 @@ onUnmounted(() => {
     </section>
 
     <div class="nav-bar" v-if="step >= 0">
-      <var-button @click="prevStep" :disabled="step === 0">Previous</var-button>
-      <var-button type="primary" @click="nextStep" :disabled="!canGoNext || step === maxStep">Next</var-button>
+      <var-button type="warning" text @click="goBackStep" :disabled="!hasBackHistory">Back</var-button>
+      <div class="nav-actions">
+        <var-button @click="prevStep" :disabled="step === 0">Previous</var-button>
+        <var-button type="primary" @click="nextStep" :disabled="!canGoNext || step === maxStep">Next</var-button>
+      </div>
     </div>
   </div>
 </template>
@@ -220,8 +250,14 @@ onUnmounted(() => {
   position: sticky;
   bottom: 12px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   gap: 10px;
   padding: 10px 0;
+}
+
+.nav-actions {
+  display: flex;
+  gap: 10px;
 }
 </style>
