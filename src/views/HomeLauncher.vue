@@ -36,7 +36,7 @@ const tools = [
 <style scoped>
 .tools-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 16px;
   margin-top: 10px;
 }
@@ -44,7 +44,8 @@ const tools = [
 .tool-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  justify-content: space-between;
+  aspect-ratio: 1/1;
   padding: 18px 16px;
   color: inherit;
   text-decoration: none;
@@ -52,12 +53,11 @@ const tools = [
 
 .tool-card__body h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: 24px;
 }
 
 .tool-card__body p {
   margin: 4px 0 0;
-  color: #4b5563;
 }
 
 .tool-card__footer {
@@ -65,6 +65,6 @@ const tools = [
   align-items: center;
   justify-content: space-between;
   font-weight: 600;
-  color: #2563eb;
+  color: var(--color-primary, #2563eb);
 }
 </style>
