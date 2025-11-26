@@ -19,6 +19,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     SpcFileConverter: typeof import('./src/components/SpcFileConverter.vue')['default']
     VarAppBar: typeof import('@varlet/ui')['_AppBarComponent']
+    VarAvatar: typeof import('@varlet/ui')['_AvatarComponent']
     VarButton: typeof import('@varlet/ui')['_ButtonComponent']
     VarCard: typeof import('@varlet/ui')['_CardComponent']
     VarCell: typeof import('@varlet/ui')['_CellComponent']
@@ -26,10 +27,15 @@ declare module 'vue' {
     VarCol: typeof import('@varlet/ui')['_ColComponent']
     VarDialog: typeof import('@varlet/ui')['_DialogComponent']
     VarIcon: typeof import('@varlet/ui')['_IconComponent']
+    VarInput: typeof import('@varlet/ui')['_InputComponent']
     VarList: typeof import('@varlet/ui')['_ListComponent']
     VarMenu: typeof import('@varlet/ui')['_MenuComponent']
+    VarProgress: typeof import('@varlet/ui')['_ProgressComponent']
     VarRow: typeof import('@varlet/ui')['_RowComponent']
+    VarSelect: typeof import('@varlet/ui')['_SelectComponent']
+    VarSlider: typeof import('@varlet/ui')['_SliderComponent']
     VarSnackbar: typeof import('@varlet/ui')['_SnackbarComponent']
     VarSwitch: typeof import('@varlet/ui')['_SwitchComponent']
+    VarUploader: typeof import('@varlet/ui')['_UploaderComponent']
   }
 }

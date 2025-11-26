@@ -114,16 +114,14 @@ onUnmounted(() => {
     </div>
 
     <div v-if="step === -1" class="welcome-grid">
-      <el-card class="welcome-card" shadow="hover" @click="jumpTo(0)">
-        <template #header>Start from template</template>
+      <var-card class="welcome-card" title="Start from template" @click="jumpTo(0)">
         <img :src="mergeIllustration" alt="Merge illustration" />
         <p>Upload a template, align and crop multiple images, then arrange them together.</p>
-      </el-card>
-      <el-card class="welcome-card" shadow="hover" @click="jumpTo(2)">
-        <template #header>Jump to analysis</template>
+      </var-card>
+      <var-card class="welcome-card" title="Jump to analysis" @click="jumpTo(2)">
         <img :src="analyzeIllustration" alt="Analysis illustration" />
         <p>Already have a merged image? Skip straight to sampling and regression.</p>
-      </el-card>
+      </var-card>
     </div>
 
     <section v-show="step === 0" class="panel">
@@ -139,8 +137,8 @@ onUnmounted(() => {
     </section>
 
     <div class="nav-bar" v-if="step >= 0">
-      <el-button @click="prevStep" :disabled="step === 0">Previous</el-button>
-      <el-button type="primary" @click="nextStep" :disabled="!canGoNext || step === maxStep">Next</el-button>
+      <var-button @click="prevStep" :disabled="step === 0">Previous</var-button>
+      <var-button type="primary" @click="nextStep" :disabled="!canGoNext || step === maxStep">Next</var-button>
     </div>
   </div>
 </template>

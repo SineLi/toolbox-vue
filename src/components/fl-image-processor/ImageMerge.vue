@@ -1,89 +1,58 @@
-<template>
+﻿<template>
   <div class="image-merge">
-    <el-card class="controls-container" shadow="hover">
-      <el-row :gutter="24">
-        <el-col :span="9" style="margin-bottom: 20px;">
-          <div style="display: flex; align-items: center;">
-            <span class="form-span">Spacing&nbsp;</span>
-            <el-slider class="slider" v-model="localSpacing" />
-          </div>
-        </el-col>
-        <el-col :span="9" style="margin-bottom: 20px;">
-          <div style="display: flex; align-items: center;">
-            <span class="form-span">Frame size&nbsp;</span>
-            <el-slider class="slider" v-model="localFrameWidth" />
-          </div>
-        </el-col>
-        <el-col :span="6" style="margin-bottom: 20px;">
-          <div style="display: flex; align-items: center;">
-            <span class="form-span">Background&nbsp;</span>
-            <el-color-picker v-model="localBackgroundColor" />
-          </div>
-        </el-col>
-
-        <el-col :span="9" style="margin-bottom: 20px;">
-          <div style="display: flex; align-items: center;">
-            <span class="form-span">Font size&nbsp;</span>
-            <el-input-number v-model="localFontSize" :min="10" style="width: 100%;" />
-          </div>
-        </el-col>
-        <el-col :span="9" style="margin-bottom: 20px;">
-          <div style="display: flex; align-items: center">
-            <span class="form-span">Font family&nbsp;</span>
-            <el-select v-model="localFontFamily" placeholder="Select font">
-              <el-option label="Arial" value="Arial"></el-option>
-              <el-option label="Times New Roman" value="Times New Roman"></el-option>
-              <el-option label="sans-serif" value="sans-serif"></el-option>
-            </el-select>
-          </div>
-        </el-col>
-        <el-col :span="6" style="margin-bottom: 20px;">
-          <div style="display: flex; align-items: center">
-            <span class="form-span">Font color&nbsp;</span>
-            <el-color-picker v-model="localFontColor" />
-          </div>
-        </el-col>
-        <el-col :span="12" style="margin-bottom: 20px;">
-          <el-button type="primary" @click="drawCompositeImage">Regenerate</el-button>
-        </el-col>
-        <el-col :span="12" style="margin-bottom: 20px;">
-          <el-button type="success" @click="downloadCompositeImage">Download PNG</el-button>
-        </el-col>
-      </el-row>
-    </el-card>
+    <var-card class="controls-card" title="Layout settings">
+      <div class="controls-grid">
+        <div class="control-item">
+          <span class="label">Spacing</span>
+          <var-slider v-model="localSpacing" :min="0" :max="120" step="1" track-color="#e5e7eb" />
+        </div>
+        <div class="control-item">
+          <span class="label">Frame size</span>
+          <var-slider v-model="localFrameWidth" :min="0" :max="120" step="1" track-color="#e5e7eb" />
+        </div>
+        <div class="control-item">
+          <span class="label">Background</span>
+          <input class="color-input" type="color" v-model="localBackgroundColor" />
+        </div>
+        <div class="control-item">
+          <span class="label">Font size</span>
+          <var-input v-model.number="localFontSize" type="number" min="10" />
+        </div>
+        <div class="control-item">
+          <span class="label">Font family</span>
+          <var-select v-model="localFontFamily" :options="fontOptions" placeholder="Choose" />
+        </div>
+        <div class="control-item">
+          <span class="label">Font color</span>
+          <input class="color-input" type="color" v-model="localFontColor" />
+        </div>
+      </div>
+      <div class="control-actions">
+        <var-button type="primary" @click="drawCompositeImage">Regenerate</var-button>
+        <var-button type="success" @click="downloadCompositeImage">Download PNG</var-button>
+      </div>
+    </var-card>
 
     <div class="canvas-container">
       <canvas ref="canvas" class="composite-canvas"></canvas>
     </div>
 
-    <el-card class="controls-container list-card" style="margin-top: 20px;" shadow="hover">
-      <el-table :data="orderedImages" style="width: 100%;" class="dataTable">
-        <el-table-column width="40">
-          <template #default>
-            <el-icon class="drag-handle" style="cursor: move;">
-              <svg viewBox="0 0 24 24" width="1em" height="1em">
-                <path
-                  fill="currentColor"
-                  d="M9,3H11V5H9V3M13,3H15V5H13V3M9,7H11V9H9V7M13,7H15V9H13V7M9,11H11V13H9V11M13,11H15V13H13V11M9,15H11V17H9V15M13,15H15V17H13V15M9,19H11V21H9V19M13,19H15V21H13V19Z"
-                />
-              </svg>
-            </el-icon>
-          </template>
-        </el-table-column>
-        <el-table-column prop="fileName" label="File name"></el-table-column>
-        <el-table-column label="Caption">
-          <template #default="scope">
-            <el-input
-              size="small"
-              v-model="orderedImages[scope.$index].text"
-              placeholder="Enter caption"
-              @keyup.enter="focusNextInput(scope.$index)"
-              :ref="(el) => setInputRef(el, scope.$index)"
-            />
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+    <var-card class="controls-card" title="Order & captions">
+      <div class="data-list" ref="sortableRef">
+        <div class="data-row" v-for="(img, index) in orderedImages" :key="img.url">
+          <span class="drag-handle">↕</span>
+          <div class="file-name" :title="img.fileName">{{ img.fileName }}</div>
+          <var-input
+            class="caption-input"
+            size="small"
+            v-model="orderedImages[index].text"
+            placeholder="Enter caption"
+            @keyup.enter="focusNextInput(index)"
+            :ref="(el) => setInputRef(el, index)"
+          />
+        </div>
+      </div>
+    </var-card>
   </div>
 </template>
 
@@ -116,8 +85,15 @@ export default defineComponent({
     const localFontFamily = ref('sans-serif')
     const localFontColor = ref('#fff')
 
+    const fontOptions = [
+      { label: 'Arial', value: 'Arial' },
+      { label: 'Times New Roman', value: 'Times New Roman' },
+      { label: 'sans-serif', value: 'sans-serif' },
+    ]
+
     const orderedImages = ref<ImageData[]>([...props.images])
     const scaledImgsCache = ref<{ img: HTMLImageElement; width: number; height: number }[]>([])
+    const sortableRef = ref<HTMLElement | null>(null)
 
     watch(
       () => props.images,
@@ -169,9 +145,7 @@ export default defineComponent({
       if (!canvas.value) return
       if (!orderedImages.value.length) {
         const ctx = canvas.value.getContext('2d')
-        if (ctx) {
-          ctx.clearRect(0, 0, canvas.value.width, canvas.value.height)
-        }
+        ctx?.clearRect(0, 0, canvas.value.width, canvas.value.height)
         return
       }
       try {
@@ -290,15 +264,13 @@ export default defineComponent({
     }
 
     function initSortable() {
-      const tbody = document.querySelector('.dataTable .el-table__body-wrapper tbody')
-      if (!tbody) return
-
-      const sortable = new Sortable(tbody, {
+      if (!sortableRef.value) return
+      const sortable = new Sortable(sortableRef.value, {
         animation: 150,
         handle: '.drag-handle',
+        draggable: '.data-row',
         onEnd: async ({ oldIndex, newIndex }) => {
           if (oldIndex === undefined || newIndex === undefined) return
-
           const newOrderedImages = [...orderedImages.value]
           const [movedItem] = newOrderedImages.splice(oldIndex, 1)
           newOrderedImages.splice(newIndex, 0, movedItem)
@@ -316,7 +288,6 @@ export default defineComponent({
           drawCompositeImage()
         },
       })
-
       return sortable
     }
 
@@ -335,14 +306,14 @@ export default defineComponent({
 
     const inputRefs = ref<(HTMLElement | null)[]>([])
     function setInputRef(el: any, index: number) {
-      inputRefs.value[index] = el ? el.$el.querySelector('input') : null
+      inputRefs.value[index] = el ? el.$el?.querySelector?.('input') ?? el.$el : null
     }
     function focusNextInput(index: number) {
       const next = index + 1
       nextTick(() => {
         if (inputRefs.value[next]) {
           ;(inputRefs.value[next] as HTMLElement).focus()
-          ;(inputRefs.value[next] as HTMLInputElement).select()
+          ;(inputRefs.value[next] as HTMLInputElement).select?.()
         }
       })
     }
@@ -360,7 +331,8 @@ export default defineComponent({
       setInputRef,
       focusNextInput,
       downloadCompositeImage,
-      initSortable,
+      fontOptions,
+      sortableRef,
     }
   },
 })
@@ -369,41 +341,85 @@ export default defineComponent({
 <style scoped>
 .image-merge {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.slider {
+.controls-card {
+  padding: 12px;
+}
+
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.control-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.color-input {
+  height: 40px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 4px;
   width: 100%;
 }
-.form-span {
-  flex: 0 0 auto;
+
+.control-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
 }
-.controls-container {
-  padding: 15px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  margin-bottom: 20px;
-}
+
 .canvas-container {
   width: 100%;
   max-height: 500px;
   overflow-x: auto;
   overflow-y: auto;
   border: 1px dashed #ccc;
-  margin: 0 auto 20px;
+  border-radius: 10px;
+  padding: 10px;
 }
-.drag-handle {
-  display: inline-flex;
+
+.data-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.data-row {
+  display: grid;
+  grid-template-columns: 32px 1fr 220px;
+  gap: 10px;
   align-items: center;
-  justify-content: center;
-  color: #909399;
+  padding: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
 }
 
-.sortable-ghost {
-  opacity: 0.5;
-  background: #c8ebfb;
+.drag-handle {
+  cursor: grab;
+  user-select: none;
 }
 
-.sortable-chosen {
-  background: #e6f1f9;
+.file-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.caption-input {
+  width: 100%;
 }
 </style>

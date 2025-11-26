@@ -1,77 +1,62 @@
-<template>
+﻿<template>
   <div class="match-crop">
-    <div class="container">
-      <el-row :gutter="24">
-        <el-col :span="6">
-          <el-card shadow="hover">
-            <template #header>
-              <span>Template image</span>
-            </template>
-            <el-upload
-              class="upload-template"
-              accept="image/*"
-              :show-file-list="false"
-              :before-upload="handleTemplateBeforeUpload"
-            >
-              <el-button type="primary" block>Upload template</el-button>
-            </el-upload>
-            <div v-if="templateDataUrl" class="preview">
-              <img :src="templateDataUrl" alt="Template preview" class="template-img" />
-            </div>
-          </el-card>
-        </el-col>
+    <div class="panel-grid">
+      <var-card class="panel-card" title="Template image">
+        <var-uploader
+          accept="image/*"
+          :multiple="false"
+          :after-read="handleTemplateAfterRead"
+          :readonly="false"
+          :deletable="false"
+        >
+          <var-button type="primary" block>Upload template</var-button>
+        </var-uploader>
+        <div v-if="templateDataUrl" class="preview">
+          <img :src="templateDataUrl" alt="Template preview" class="template-img" />
+        </div>
+      </var-card>
 
-        <el-col :span="18">
-          <el-card shadow="hover">
-            <template #header>
-              <span>Images to process</span>
-            </template>
-            <el-table :data="imageTasks" style="width: 100%; height: 70vh">
-              <el-table-column prop="file.name" label="File name" width="140" />
-              <el-table-column label="Original" width="260">
-                <template #default="scope">
-                  <img :src="scope.row.originalDataUrl" alt="Original image" class="list-img" />
-                </template>
-              </el-table-column>
-              <el-table-column label="Result">
-                <template #default="scope">
-                  <div v-if="scope.row.processing" class="spinner-container">
-                    <div class="spinner"></div>
-                  </div>
-                  <div v-else>
-                    <img
-                      v-if="scope.row.showCroppedURL"
-                      :src="scope.row.showCroppedURL"
-                      alt="Processed result"
-                      class="list-img"
-                    />
-                    <span v-else>Failed</span>
-                  </div>
-                </template>
-              </el-table-column>
-            </el-table>
-            <div class="footer-row">
-              <el-progress :percentage="progress" status="active" class="progress"></el-progress>
-              <el-upload
-                class="upload-images"
-                accept="image/*"
-                multiple
-                :show-file-list="false"
-                :before-upload="handleImagesBeforeUpload"
-              >
-                <el-button type="primary">Upload images</el-button>
-              </el-upload>
-            </div>
-          </el-card>
-        </el-col>
-      </el-row>
+      <var-card class="panel-card" title="Images to process">
+        <div class="actions">
+          <var-uploader
+            accept="image/*"
+            :multiple="true"
+            :after-read="handleImagesAfterRead"
+            :readonly="false"
+            :deletable="false"
+          >
+            <var-button type="primary">Upload images</var-button>
+          </var-uploader>
+          <var-progress :value="progress" type="linear" track-color="#e5e7eb" />
+        </div>
+
+        <var-list>
+          <template v-if="imageTasks.length">
+            <var-cell v-for="task in imageTasks" :key="task.id" class="task-row" border>
+              <template #icon>
+                <var-avatar color="#e5e7eb" text-color="#111" size="32">{{ task.id + 1 }}</var-avatar>
+              </template>
+              <div class="task-body">
+                <div class="task-title" :title="task.file.name">{{ task.file.name }}</div>
+                <div class="task-meta">{{ formatSize(task.file.size) }}</div>
+                <div class="task-preview">
+                  <img v-if="task.showCroppedURL" :src="task.showCroppedURL" alt="Cropped" />
+                  <span v-else-if="task.processing">Processing…</span>
+                  <span v-else>Failed</span>
+                </div>
+              </div>
+            </var-cell>
+          </template>
+          <div v-else class="empty">Drop images to start processing.</div>
+        </var-list>
+      </var-card>
     </div>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref, reactive, computed, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { Snackbar } from '@varlet/ui'
 import cv, { Mat } from '@techstark/opencv-js'
 
 interface ImageTask {
@@ -82,6 +67,8 @@ interface ImageTask {
   processedDataUrl: string | null
   processing: boolean
 }
+
+type UploaderFile = { file?: File }
 
 export default defineComponent({
   name: 'MatchAndCrop',
@@ -95,12 +82,26 @@ export default defineComponent({
     const imageTasks = reactive<ImageTask[]>([])
     let taskIdCounter = 0
     let isProcessingQueue = false
-    let pendingImages = 0
 
-    const handleTemplateBeforeUpload = (file: File) => {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        templateDataUrl.value = e.target?.result as string
+    const readAsDataURL = (file: File) =>
+      new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = () => reject(new Error('read failed'))
+        reader.readAsDataURL(file)
+      })
+
+    const handleTemplateAfterRead = async (payload: UploaderFile | UploaderFile[]) => {
+      const entry = Array.isArray(payload) ? payload[0] : payload
+      const file = entry?.file
+      if (!file) return
+      const dataUrl = await readAsDataURL(file)
+      templateDataUrl.value = dataUrl
+      await prepareTemplate(dataUrl)
+    }
+
+    const prepareTemplate = async (dataUrl: string) =>
+      new Promise<void>((resolve) => {
         const img = new Image()
         img.onload = () => {
           const mat = cv.imread(img)
@@ -113,60 +114,61 @@ export default defineComponent({
           templateHeight = canny.rows
           mat.delete()
           gray.delete()
+          resolve()
         }
-        img.src = templateDataUrl.value!
+        img.onerror = () => {
+          Snackbar.error('Failed to load template')
+          resolve()
+        }
+        img.src = dataUrl
+      })
+
+    const handleImagesAfterRead = async (payload: UploaderFile | UploaderFile[]) => {
+      const files = Array.isArray(payload) ? payload : [payload]
+      for (const entry of files) {
+        const file = entry?.file
+        if (!file) continue
+        const originalDataUrl = await readAsDataURL(file)
+        await addTask(file, originalDataUrl)
       }
-      reader.readAsDataURL(file)
-      return false
+      if (imageTasks.some((task) => task.processing)) {
+        processQueue()
+      }
     }
 
-    const handleImagesBeforeUpload = (file: File) => {
-      pendingImages++
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const originalDataUrl = e.target?.result as string
+    const addTask = async (file: File, originalDataUrl: string) =>
+      new Promise<void>((resolve) => {
         const img = new Image()
         img.onload = () => {
-          const task: ImageTask = {
+          imageTasks.push({
             id: taskIdCounter++,
             file,
             originalDataUrl,
             showCroppedURL: null,
             processedDataUrl: null,
             processing: true,
-          }
-          imageTasks.push(task)
-          pendingImages--
-          if (pendingImages === 0) {
-            processQueue()
-          }
+          })
+          resolve()
         }
         img.onerror = () => {
-          const task: ImageTask = {
+          imageTasks.push({
             id: taskIdCounter++,
             file,
             originalDataUrl,
             showCroppedURL: null,
             processedDataUrl: null,
             processing: false,
-          }
-          imageTasks.push(task)
-          pendingImages--
-          if (pendingImages === 0) {
-            processQueue()
-          }
-          ElMessage.error('Failed to load image')
+          })
+          Snackbar.error('Image load failed')
+          resolve()
         }
         img.src = originalDataUrl
-      }
-      reader.readAsDataURL(file)
-      return false
-    }
+      })
 
     function processSingleImage(task: ImageTask): Promise<void> {
       return new Promise((resolve) => {
         if (!templateCannyMat) {
-          ElMessage.error('Please upload a template image first')
+          Snackbar.error('Please upload a template image first')
           task.processing = false
           resolve()
           return
@@ -187,7 +189,7 @@ export default defineComponent({
             const resultRows = cannyInput.rows - templateHeight + 1
             result.create(resultRows, resultCols, cv.CV_32FC1)
             cv.matchTemplate(cannyInput, templateCannyMat as Mat, result, cv.TM_CCOEFF_NORMED)
-            const mm = cv.minMaxLoc(result)
+            const mm = (cv as any).minMaxLoc(result)
             const maxLoc = mm.maxLoc
             result.delete()
 
@@ -220,7 +222,7 @@ export default defineComponent({
               const resultRotRows = roiSmall.rows - rotatedTpl.rows + 1
               resultRot.create(resultRotRows, resultRotCols, cv.CV_32FC1)
               cv.matchTemplate(roiSmall, rotatedTpl, resultRot, cv.TM_CCOEFF_NORMED)
-              const mmRot = cv.minMaxLoc(resultRot)
+              const mmRot = (cv as any).minMaxLoc(resultRot)
               if (mmRot.maxVal > bestMaxVal) {
                 bestMaxVal = mmRot.maxVal
                 bestAngle = angle
@@ -325,19 +327,29 @@ export default defineComponent({
 
     watch(progress, (newVal) => {
       if (newVal === 100 && imageTasks.length > 0) {
-        ElMessage({
-          message: 'All images processed',
-          type: 'success',
-        })
+        Snackbar.success('All images processed')
       }
     })
+
+    const formatSize = (size?: number) => {
+      if (!size) return '0 B'
+      const units = ['B', 'KB', 'MB', 'GB']
+      let v = size
+      let idx = 0
+      while (v >= 1024 && idx < units.length - 1) {
+        v /= 1024
+        idx++
+      }
+      return `${v.toFixed(1)} ${units[idx]}`
+    }
 
     return {
       templateDataUrl,
       imageTasks,
-      handleTemplateBeforeUpload,
-      handleImagesBeforeUpload,
+      handleTemplateAfterRead,
+      handleImagesAfterRead,
       progress,
+      formatSize,
     }
   },
 })
@@ -348,63 +360,65 @@ export default defineComponent({
   width: 100%;
 }
 
-.container {
-  padding: 15px;
+.panel-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.panel-card {
+  height: 100%;
 }
 
 .preview {
-  margin-top: 10px;
+  margin-top: 12px;
   text-align: center;
 }
 
 .template-img {
-  max-width: 300px;
-  max-height: 150px;
+  max-width: 320px;
+  max-height: 180px;
   object-fit: contain;
   border: 1px solid #eee;
+  border-radius: 8px;
 }
 
-.list-img {
-  max-height: 150px;
+.actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.task-row {
+  align-items: flex-start;
+}
+
+.task-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-title {
+  font-weight: 600;
+}
+
+.task-meta {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.task-preview img {
+  max-height: 140px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
   object-fit: contain;
-  border: 1px solid #eee;
 }
 
-.spinner-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100px;
-}
-
-.spinner {
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #409eff;
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.footer-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 10px;
-}
-
-.progress {
-  flex: 1;
-  margin-right: 10px;
+.empty {
+  padding: 24px;
+  text-align: center;
+  color: #6b7280;
 }
 </style>
