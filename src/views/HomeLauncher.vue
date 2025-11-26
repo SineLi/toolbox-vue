@@ -1,9 +1,14 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 const tools = [
   {
     name: 'SPC File Converter',
-    desc: '将 .spd 光谱数据转换为 CSV，支持多文件选择、批量打包下载。',
+    desc: 'Convert .spd spectral data to CSV with multi-file selection and batch downloads.',
     path: '/spc-converter',
+  },
+  {
+    name: 'FL Image Processor',
+    desc: 'Template match and crop images, merge them, and run quick color regression.',
+    path: '/fl-image-processor',
   },
 ]
 </script>
@@ -12,9 +17,9 @@ const tools = [
   <div class="page">
     <header class="page__header">
       <div>
-        <p class="eyebrow">工具箱</p>
-        <h1>选择一个工具开始</h1>
-        <p class="lead">常用小工具集合，点击卡片进入对应页面。</p>
+        <p class="eyebrow">Tools</p>
+        <h1>Choose a utility</h1>
+        <p class="lead">Click a card to open a focused tool in this workspace.</p>
       </div>
     </header>
 
@@ -25,7 +30,7 @@ const tools = [
           <p>{{ tool.desc }}</p>
         </div>
         <div class="tool-card__footer">
-          <span>进入</span>
+          <span>Open</span>
           <span aria-hidden="true">→</span>
         </div>
       </RouterLink>

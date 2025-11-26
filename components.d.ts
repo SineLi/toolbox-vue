@@ -12,6 +12,9 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppShell: typeof import('./src/components/AppShell.vue')['default']
+    ImageMerge: typeof import('./src/components/fl-image-processor/ImageMerge.vue')['default']
+    ImageRegression: typeof import('./src/components/fl-image-processor/ImageRegression.vue')['default']
+    MatchAndCrop: typeof import('./src/components/fl-image-processor/MatchAndCrop.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SpcFileConverter: typeof import('./src/components/SpcFileConverter.vue')['default']
