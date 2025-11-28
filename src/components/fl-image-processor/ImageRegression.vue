@@ -6,11 +6,10 @@
           <div class="control-item">
             <span class="label">Sample size</span>
             <var-slider
-              v-model="sampleSize"
+              :model-value="sampleSize"
               :min="1"
               :max="50"
               track-color="#e5e7eb"
-              @change="handleSampleSizeChange"
             />
           </div>
           <div class="control-item">

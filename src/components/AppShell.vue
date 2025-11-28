@@ -1,13 +1,26 @@
-<script setup lang="ts">
-import { ref, watch } from 'vue'
+﻿<script setup lang="ts">
+import { computed, ref, watch } from 'vue'
 import { StyleProvider, Themes } from '@varlet/ui'
 import { useDark, useToggle } from '@vueuse/core'
+import { useRoute, useRouter } from 'vue-router'
 
 const isDark = useDark()
 const toggleDark = useToggle(isDark)
 const currentTheme = ref<'light' | 'dark'>('light')
 const currentLanguage = ref('zh')
 const languageMenu = ref()
+const route = useRoute()
+const router = useRouter()
+
+const showBack = computed(() => route.name !== 'home')
+
+const goBack = () => {
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.push({ name: 'home' })
+  }
+}
 
 const CAUTheme = {
   light: {
@@ -162,6 +175,14 @@ watch(currentLanguage, (newLanguage) => {
 <template>
   <div class="app-shell">
     <var-app-bar class="app-bar" title="工具箱">
+      <template #left>
+        <div class="app-bar-left">
+          <var-button v-if="showBack" text round @click="goBack" aria-label="返回">
+            <var-icon name="chevron-left" />
+          </var-button>
+          <div v-else class="back-placeholder" aria-hidden="true"></div>
+        </div>
+      </template>
       <template #right>
         <var-button text round @click="toggleTheme">
           <var-icon :name="currentTheme === 'dark' ? 'white-balance-sunny' : 'weather-night'" />
@@ -206,6 +227,18 @@ watch(currentLanguage, (newLanguage) => {
   box-shadow: 0 8px 24px color-mix(in srgb, var(--color-primary, #2563eb) 16%, transparent);
   border-bottom: 1px solid color-mix(in srgb, currentColor 14%, transparent);
   backdrop-filter: blur(12px);
+}
+
+.app-bar-left {
+  display: flex;
+  align-items: center;
+  min-width: 48px;
+  justify-content: center;
+}
+
+.back-placeholder {
+  width: 44px;
+  height: 44px;
 }
 
 .app-body {

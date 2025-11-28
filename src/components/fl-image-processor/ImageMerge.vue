@@ -5,23 +5,21 @@
         <div class="control-item">
           <span class="label">Spacing</span>
           <var-slider
-            v-model="localSpacing"
+            :model-value="localSpacing"
             :min="0"
             :max="120"
             :step="1"
             track-color="#e5e7eb"
-            @change=""
           />
         </div>
         <div class="control-item">
           <span class="label">Frame size</span>
           <var-slider
-            v-model="localFrameWidth"
+            :model-value="localFrameWidth"
             :min="0"
             :max="120"
             :step="1"
             track-color="#e5e7eb"
-            @change=""
           />
         </div>
         <div class="control-item">
