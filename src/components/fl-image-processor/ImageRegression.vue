@@ -56,7 +56,7 @@
     </var-card>
 
     <var-card class="controls-card" title="Chart">
-      <div id="plotlyChart" class="chart"></div>
+      <div ref="plotlyChart" class="chart"></div>
     </var-card>
   </div>
 </template>
@@ -93,6 +93,7 @@ export default defineComponent({
     const formula = ref<string>('')
     const weightMethod = ref<'none' | 'direct' | 'instrument'>('none')
     const plotType = ref<'scatter' | 'bar'>('scatter')
+    const plotlyChart = ref<HTMLElement | null>(null)
 
     const plotOptions = [
       { label: 'Scatter', value: 'scatter' },
@@ -414,11 +415,15 @@ export default defineComponent({
         barmode: 'relative',
       }
 
-      Plotly.newPlot('plotlyChart', traces, layout)
+      if (plotlyChart.value) {
+        Plotly.newPlot(plotlyChart.value, traces, layout)
+      }
     }
 
     onMounted(() => {
-      Plotly.newPlot('plotlyChart', [], {})
+      if (plotlyChart.value) {
+        Plotly.newPlot(plotlyChart.value, [], {})
+      }
     })
 
     onUnmounted(() => {
@@ -426,7 +431,9 @@ export default defineComponent({
       if (uploadedImg.value && uploadedImg.value.startsWith('blob:')) {
         URL.revokeObjectURL(uploadedImg.value)
       }
-      Plotly.purge('plotlyChart')
+      if (plotlyChart.value) {
+        Plotly.purge(plotlyChart.value)
+      }
     })
 
     return {
@@ -452,6 +459,7 @@ export default defineComponent({
       plotOptions,
       weightOptions,
       handleSampleSizeChange,
+      plotlyChart,
     }
   },
 })
