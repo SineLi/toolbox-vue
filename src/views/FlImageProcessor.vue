@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
 import MatchAndCrop from '../components/fl-image-processor/MatchAndCrop.vue'
 import ImageMerge from '../components/fl-image-processor/ImageMerge.vue'
 import ImageRegression from '../components/fl-image-processor/ImageRegression.vue'
@@ -24,6 +24,7 @@ const nextDisable = ref(false)
 const maxStep = steps.length - 1
 const stepHistory = ref<number[]>([])
 const isNavigatingBack = ref(false)
+const imageMergeRef = ref<InstanceType<typeof ImageMerge> | null>(null)
 
 const hasCroppedImages = computed(() => processedImages.value.length > 0)
 const canGoNext = computed(() => {
@@ -52,7 +53,7 @@ const handleProcessingStart = () => {
   nextDisable.value = true
 }
 
-const handleProcessingFinished = (imageTasks: any[]) => {
+const handleProcessingFinished = async (imageTasks: any[]) => {
   nextDisable.value = false
   processedImages.value = imageTasks
     .filter((task) => task.processedDataUrl)
@@ -64,6 +65,8 @@ const handleProcessingFinished = (imageTasks: any[]) => {
   if (processedImages.value.length && step.value < 1) {
     step.value = 1
   }
+  await nextTick()
+  imageMergeRef.value?.drawCompositeImage?.()
 }
 
 const handleUpdateCanvases = (canvases: { fullRes: string }) => {
@@ -171,7 +174,7 @@ const md3Primary = 'var(--color-primary, #2563eb)'
     </section>
 
     <section v-show="step === 1" class="panel">
-      <ImageMerge :images="processedImages" @updateCanvases="handleUpdateCanvases" />
+      <ImageMerge ref="imageMergeRef" :images="processedImages" @updateCanvases="handleUpdateCanvases" />
     </section>
 
     <section v-show="step === 2" class="panel">

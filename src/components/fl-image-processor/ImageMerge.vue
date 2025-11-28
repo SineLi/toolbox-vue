@@ -5,26 +5,30 @@
         <div class="control-item">
           <span class="label">Spacing</span>
           <var-slider
-            :model-value="localSpacing"
+            v-model="localSpacing"
             :min="0"
             :max="120"
             :step="1"
             track-color="#e5e7eb"
+            @input="handleSpacingChange"
+            @change="handleSpacingChange"
           />
         </div>
         <div class="control-item">
           <span class="label">Frame size</span>
           <var-slider
-            :model-value="localFrameWidth"
+            v-model="localFrameWidth"
             :min="0"
             :max="120"
             :step="1"
             track-color="#e5e7eb"
+            @input="handleFrameChange"
+            @change="handleFrameChange"
           />
         </div>
         <div class="control-item">
           <span class="label">Background</span>
-          <input class="color-input" type="color" v-model="localBackgroundColor" @change="drawCompositeImage" />
+          <input class="color-input" type="color" v-model="localBackgroundColor" @change="markNeedsRedraw" />
         </div>
         <div class="control-item">
           <span class="label">Font size</span>
@@ -32,11 +36,11 @@
         </div>
         <div class="control-item">
           <span class="label">Font family</span>
-          <var-select v-model="localFontFamily" :options="fontOptions" placeholder="Choose" @change="drawCompositeImage" />
+          <var-select v-model="localFontFamily" :options="fontOptions" placeholder="Choose" @change="markNeedsRedraw" />
         </div>
         <div class="control-item">
           <span class="label">Font color</span>
-          <input class="color-input" type="color" v-model="localFontColor" @change="drawCompositeImage" />
+          <input class="color-input" type="color" v-model="localFontColor" @change="markNeedsRedraw" />
         </div>
       </div>
       <div class="control-actions">
@@ -60,6 +64,7 @@
             v-model="orderedImages[index]!.text"
             placeholder="Enter caption"
             @keyup.enter="focusNextInput(index)"
+            @input="markNeedsRedraw"
             :ref="(el: any) => setInputRef(el, index)"
           />
         </div>
@@ -95,7 +100,7 @@ export default defineComponent({
     const localBackgroundColor = ref('#000000')
     const localFontSize = ref<string>('16')
     const localFontFamily = ref('sans-serif')
-    const localFontColor = ref('#fff')
+    const localFontColor = ref('#ffffff')
 
     const fontOptions = [
       { label: 'Arial', value: 'Arial' },
@@ -107,21 +112,44 @@ export default defineComponent({
     const scaledImgsCache = ref<{ img: HTMLImageElement; width: number; height: number }[]>([])
     const sortableRef = ref<HTMLElement | null>(null)
 
+    const revokeFullResObjectUrl = () => {
+      if (fullResCanvas.value && (fullResCanvas.value as any).objectUrl) {
+        URL.revokeObjectURL((fullResCanvas.value as any).objectUrl)
+        delete (fullResCanvas.value as any).objectUrl
+      }
+    }
+
+    const markNeedsRedraw = () => {
+      revokeFullResObjectUrl()
+      fullResCanvas.value = null
+      emit('updateCanvases', { fullRes: '' })
+    }
+
+    const clamp = (val: number, min: number, max: number) => Math.min(max, Math.max(min, val))
+    const normalizeHex = (val: string) => {
+      const trimmed = (val || '').trim()
+      if (/^#[0-9a-fA-F]{6}$/.test(trimmed)) return trimmed.toLowerCase()
+      if (/^#[0-9a-fA-F]{3}$/.test(trimmed)) {
+        return (
+          '#' +
+          trimmed[1] +
+          trimmed[1] +
+          trimmed[2] +
+          trimmed[2] +
+          trimmed[3] +
+          trimmed[3]
+        ).toLowerCase()
+      }
+      return '#000000'
+    }
+
     watch(
       () => props.images,
       (newVal) => {
         orderedImages.value = [...newVal]
         scaledImgsCache.value = []
-        drawCompositeImage()
+        markNeedsRedraw()
       },
-    )
-
-    watch(
-      orderedImages,
-      () => {
-        drawCompositeImage()
-      },
-      { deep: true },
     )
 
     async function loadImages(urls: string[]): Promise<HTMLImageElement[]> {
@@ -202,9 +230,7 @@ export default defineComponent({
             }, 'image/png', 1.0)
           })
 
-          if (fullResCanvas.value && (fullResCanvas.value as any).objectUrl) {
-            URL.revokeObjectURL((fullResCanvas.value as any).objectUrl)
-          }
+          revokeFullResObjectUrl()
 
           const objectUrl = URL.createObjectURL(blob)
           fullResCanvas.value = fullCanvas
@@ -279,24 +305,30 @@ export default defineComponent({
     }
 
     const handleSpacingChange = (val: number | number[]) => {
-      const value = Array.isArray(val) ? (val[0] ?? 0) : val ?? 0
-      localSpacing.value = Number(value) || 0
-      drawCompositeImage()
+      const raw = Array.isArray(val) ? val[0] : val
+      const next = clamp(Number(raw) || 0, 0, 120)
+      localSpacing.value = next
+      markNeedsRedraw()
     }
 
     const handleFrameChange = (val: number | number[]) => {
-      const value = Array.isArray(val) ? (val[0] ?? 0) : val ?? 0
-      localFrameWidth.value = Number(value) || 0
-      drawCompositeImage()
+      const raw = Array.isArray(val) ? val[0] : val
+      const next = clamp(Number(raw) || 0, 0, 120)
+      localFrameWidth.value = next
+      markNeedsRedraw()
     }
 
     const handleFontSizeChange = (val: any) => {
       const num = Number(val?.target?.value ?? localFontSize.value)
       if (!Number.isNaN(num)) {
         localFontSize.value = String(num)
-        drawCompositeImage()
+        markNeedsRedraw()
       }
     }
+
+    watch(localFontColor, (val) => {
+      localFontColor.value = normalizeHex(val)
+    })
 
     function initSortable() {
       if (!sortableRef.value) return
@@ -322,23 +354,20 @@ export default defineComponent({
           orderedImages.value = []
           await nextTick()
           orderedImages.value = newOrderedImages
-          drawCompositeImage()
+          markNeedsRedraw()
         },
       })
       return sortable
     }
 
     onMounted(() => {
-      drawCompositeImage()
       nextTick(() => {
         initSortable()
       })
     })
 
     onUnmounted(() => {
-      if (fullResCanvas.value && (fullResCanvas.value as any).objectUrl) {
-        URL.revokeObjectURL((fullResCanvas.value as any).objectUrl)
-      }
+      revokeFullResObjectUrl()
     })
 
     const inputRefs = ref<(HTMLElement | null)[]>([])
@@ -370,9 +399,10 @@ export default defineComponent({
       downloadCompositeImage,
       fontOptions,
       sortableRef,
+      handleFontSizeChange,
+      markNeedsRedraw,
       handleSpacingChange,
       handleFrameChange,
-      handleFontSizeChange,
     }
   },
 })
