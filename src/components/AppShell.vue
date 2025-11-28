@@ -249,7 +249,7 @@ watch(currentLanguage, (newLanguage) => {
 
 .app-body {
   flex: 1;
-  padding-top: 72px;
+  padding-top: 60px;
 }
 
 .app-content {

@@ -1,7 +1,12 @@
 ﻿<template>
   <div class="match-crop">
     <div class="panel-grid">
-      <var-card class="panel-card" title="Template image">
+      <var-card class="panel-card template-card">
+        <template #title>
+          <div class="card-title">
+            <span class="card-heading">Template image</span>
+          </div>
+        </template>
         <var-uploader accept="image/*" :multiple="false" @after-read="handleTemplateAfterRead" :readonly="false" :deletable="false">
           <var-button type="primary" block>Upload template</var-button>
         </var-uploader>
@@ -10,7 +15,12 @@
         </div>
       </var-card>
 
-      <var-card class="panel-card" title="Images to process">
+      <var-card class="panel-card process-card">
+        <template #title>
+          <div class="card-title">
+            <span class="card-heading">Images to process</span>
+          </div>
+        </template>
         <div class="actions">
           <var-uploader
             accept="image/*"
@@ -21,22 +31,27 @@
           >
             <var-button type="primary">Upload images</var-button>
           </var-uploader>
-          <var-progress :value="progress" track-color="#e5e7eb" />
+          <div class="progress-wrap" v-if="imageTasks.length">
+            <div class="progress-label">Processed {{ processedCount }}/{{ imageTasks.length }}</div>
+            <var-progress :value="progress" track-color="#e5e7eb" />
+          </div>
         </div>
 
-        <var-list>
+        <var-list class="tasks-list">
           <template v-if="imageTasks.length">
             <var-cell v-for="task in imageTasks" :key="task.id" class="task-row" border>
-              <template #icon>
-                <var-avatar color="#e5e7eb" text-color="#111" size="32">{{ task.id + 1 }}</var-avatar>
-              </template>
-              <div class="task-body">
-                <div class="task-title" :title="task.file.name">{{ task.file.name }}</div>
-                <div class="task-meta">{{ formatSize(task.file.size) }}</div>
+              <div class="task-row__content">
+                <div class="task-text">
+                  <div class="task-title" :title="task.file.name">{{ task.file.name }}</div>
+                  <div class="task-meta">#{{ task.id + 1 }} · {{ formatSize(task.file.size) }}</div>
+                  <div class="task-status" v-if="task.processing">Processing...</div>
+                  <div class="task-status task-status--error" v-else-if="!task.showCroppedURL">Failed</div>
+                </div>
                 <div class="task-preview">
                   <img v-if="task.showCroppedURL" :src="task.showCroppedURL" alt="Cropped" />
-                  <span v-else-if="task.processing">Processing…</span>
-                  <span v-else>Failed</span>
+                  <div v-else class="task-preview__placeholder">
+                    <span>{{ task.processing ? 'Processing' : 'No preview' }}</span>
+                  </div>
                 </div>
               </div>
             </var-cell>
@@ -318,6 +333,7 @@ export default defineComponent({
       const finished = imageTasks.filter((task) => !task.processing).length
       return Math.round((finished / imageTasks.length) * 100)
     })
+    const processedCount = computed(() => imageTasks.filter((task) => !task.processing).length)
 
     watch(progress, (newVal) => {
       if (newVal === 100 && imageTasks.length > 0) {
@@ -343,6 +359,7 @@ export default defineComponent({
       handleTemplateAfterRead,
       handleImagesAfterRead,
       progress,
+      processedCount,
       formatSize,
     }
   },
@@ -356,12 +373,53 @@ export default defineComponent({
 
 .panel-grid {
   display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+  grid-template-columns: minmax(240px, 340px) minmax(480px, 1fr);
+  align-items: start;
 }
 
 .panel-card {
   height: 100%;
+  --card-border-radius: 20px;
+}
+
+.card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant, #6b7280);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.card-heading {
+  font-weight: 700;
+  font-size: 24px;
+  padding: 20px;
+}
+
+.template-card .var-card__content,
+.process-card .var-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tasks-list :deep(.var-cell__content) {
+  width: 100%;
+}
+
+.tasks-list {
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .preview {
@@ -370,25 +428,47 @@ export default defineComponent({
 }
 
 .template-img {
-  max-width: 320px;
-  max-height: 180px;
+  max-width: 260px;
+  max-height: 160px;
   object-fit: contain;
   border: 1px solid #eee;
   border-radius: 8px;
+  margin: 0 auto;
 }
 
 .actions {
   display: flex;
   gap: 12px;
-  align-items: center;
-  margin-bottom: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.progress-wrap {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.progress-label {
+  font-size: 13px;
+  color: var(--color-on-surface-variant, #4b5563);
 }
 
 .task-row {
-  align-items: flex-start;
+  align-items: stretch;
 }
 
-.task-body {
+.task-row__content {
+  display: grid;
+  grid-template-columns: 1fr 230px;
+  gap: 12px;
+  align-items: center;
+}
+
+.task-text {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -396,6 +476,7 @@ export default defineComponent({
 
 .task-title {
   font-weight: 600;
+  word-break: break-word;
 }
 
 .task-meta {
@@ -403,11 +484,37 @@ export default defineComponent({
   font-size: 12px;
 }
 
+.task-status {
+  font-size: 13px;
+  color: var(--color-primary, #2563eb);
+}
+
+.task-status--error {
+  color: var(--color-danger, #f43f5e);
+}
+
+.task-preview {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .task-preview img {
-  max-height: 140px;
+  width: 100%;
+  max-height: 160px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   object-fit: contain;
+  background: #f8fafc;
+}
+
+.task-preview__placeholder {
+  min-height: 120px;
+  border: 1px dashed #e5e7eb;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: #9ca3af;
+  font-size: 13px;
 }
 
 .empty {
@@ -415,4 +522,16 @@ export default defineComponent({
   text-align: center;
   color: #6b7280;
 }
+
+@media (max-width: 960px) {
+  .panel-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .task-row__content {
+    grid-template-columns: 1fr;
+  }
+}
 </style>
+
+

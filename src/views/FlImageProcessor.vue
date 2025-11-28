@@ -115,7 +115,7 @@ const md3Primary = 'var(--color-primary, #2563eb)'
 
 <template>
   <div class="tool-page">
-    <var-card class="steps-card" :elevation="1">
+    <var-card class="steps-card">
       <var-steps
         class="steps-bar"
         :active="activeStep"
@@ -134,13 +134,13 @@ const md3Primary = 'var(--color-primary, #2563eb)'
 
     <div v-if="step === -1" class="welcome-grid">
       <var-card class="welcome-card" :elevation="1" ripple @click="jumpTo(0)">
-        <div class="welcome-card__title-row">
+        <!-- <div class="welcome-card__title-row"> -->
           <div>
             <p class="welcome-card__eyebrow">Recommended</p>
             <div class="welcome-card__title">Start with match & crop</div>
           </div>
           <!-- <var-chip type="primary" size="small" class="welcome-card__chip">Step 1</var-chip> -->
-        </div>
+        <!-- </div> -->
         <p class="welcome-card__desc">
           Upload a template, align and crop multiple images, then arrange them together for merging.
         </p>
@@ -150,12 +150,12 @@ const md3Primary = 'var(--color-primary, #2563eb)'
         </div>
       </var-card>
       <var-card class="welcome-card" :elevation="1" ripple @click="jumpTo(2)">
-        <div class="welcome-card__title-row">
+        <!-- <div class="welcome-card__title-row"> -->
           <div>
             <p class="welcome-card__eyebrow">Have a merged image</p>
             <div class="welcome-card__title">Go straight to analysis</div>
           </div>
-        </div>
+        <!-- </div> -->
         <p class="welcome-card__desc">
           Skip cropping and head directly to sampling and regression on your merged strip.
         </p>
@@ -198,6 +198,7 @@ const md3Primary = 'var(--color-primary, #2563eb)'
 .steps-card {
   --card-border-radius: 20px;
   padding: 8px;
+  background: var(--card-background)
 }
 
 .steps-bar {
@@ -229,7 +230,7 @@ const md3Primary = 'var(--color-primary, #2563eb)'
 
 .step-meta__desc {
   font-size: 12px;
-  color: var(--color-on-surface-variant, #4b5563);
+  /* color: var(--color-on-surface-variant, #4b5563); */
   line-height: 1.5;
 }
 
@@ -242,9 +243,21 @@ const md3Primary = 'var(--color-primary, #2563eb)'
 .welcome-card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  /* gap: 10px; */
   --card-border-radius: 20px;
+  /* --card-background: var(--color-surface, #fff); */
   cursor: pointer;
+}
+
+.welcome-card {
+  transform: translateY(0) scale(1);
+  transition: transform 180ms cubic-bezier(.2, .8, .2, 1), box-shadow 180ms cubic-bezier(.2, .8, .2, 1);
+  will-change: transform, box-shadow;
+}
+
+.welcome-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 .welcome-card__title-row {
