@@ -2,13 +2,7 @@
   <div class="match-crop">
     <div class="panel-grid">
       <var-card class="panel-card" title="Template image">
-        <var-uploader
-          accept="image/*"
-          :multiple="false"
-          :after-read="handleTemplateAfterRead"
-          :readonly="false"
-          :deletable="false"
-        >
+        <var-uploader accept="image/*" :multiple="false" @after-read="handleTemplateAfterRead" :readonly="false" :deletable="false">
           <var-button type="primary" block>Upload template</var-button>
         </var-uploader>
         <div v-if="templateDataUrl" class="preview">
@@ -21,7 +15,7 @@
           <var-uploader
             accept="image/*"
             :multiple="true"
-            :after-read="handleImagesAfterRead"
+            @after-read="handleImagesAfterRead"
             :readonly="false"
             :deletable="false"
           >

@@ -5,7 +5,13 @@
         <div class="control-row">
           <div class="control-item">
             <span class="label">Sample size</span>
-            <var-slider v-model="sampleSize" :min="1" :max="50" track-color="#e5e7eb" />
+            <var-slider
+              v-model="sampleSize"
+              :min="1"
+              :max="50"
+              track-color="#e5e7eb"
+              @change="handleSampleSizeChange"
+            />
           </div>
           <div class="control-item">
             <span class="label">Random seed</span>
@@ -98,6 +104,13 @@ export default defineComponent({
       { label: 'Direct', value: 'direct' },
       { label: 'Instrument', value: 'instrument' },
     ]
+    const handleSampleSizeChange = (val: number | number[]) => {
+      const raw = Array.isArray(val) ? val[0] : val
+      const next = Number(raw) || 1
+      sampleSize.value = next
+      squares.value = squares.value.map((sq) => ({ ...sq, size: next }))
+      redrawCanvas()
+    }
 
     watch(
       () => props.fullRes,
@@ -439,6 +452,7 @@ export default defineComponent({
       plotType,
       plotOptions,
       weightOptions,
+      handleSampleSizeChange,
     }
   },
 })

@@ -4,27 +4,41 @@
       <div class="controls-grid">
         <div class="control-item">
           <span class="label">Spacing</span>
-          <var-slider v-model="localSpacing" :min="0" :max="120" :step="1" track-color="#e5e7eb" />
+          <var-slider
+            v-model="localSpacing"
+            :min="0"
+            :max="120"
+            :step="1"
+            track-color="#e5e7eb"
+            @change=""
+          />
         </div>
         <div class="control-item">
           <span class="label">Frame size</span>
-          <var-slider v-model="localFrameWidth" :min="0" :max="120" :step="1" track-color="#e5e7eb" />
+          <var-slider
+            v-model="localFrameWidth"
+            :min="0"
+            :max="120"
+            :step="1"
+            track-color="#e5e7eb"
+            @change=""
+          />
         </div>
         <div class="control-item">
           <span class="label">Background</span>
-          <input class="color-input" type="color" v-model="localBackgroundColor" />
+          <input class="color-input" type="color" v-model="localBackgroundColor" @change="drawCompositeImage" />
         </div>
         <div class="control-item">
           <span class="label">Font size</span>
-          <var-input v-model="localFontSize" type="number" :min="10" />
+          <var-input v-model="localFontSize" type="number" :min="10" @change="handleFontSizeChange" />
         </div>
         <div class="control-item">
           <span class="label">Font family</span>
-          <var-select v-model="localFontFamily" :options="fontOptions" placeholder="Choose" />
+          <var-select v-model="localFontFamily" :options="fontOptions" placeholder="Choose" @change="drawCompositeImage" />
         </div>
         <div class="control-item">
           <span class="label">Font color</span>
-          <input class="color-input" type="color" v-model="localFontColor" />
+          <input class="color-input" type="color" v-model="localFontColor" @change="drawCompositeImage" />
         </div>
       </div>
       <div class="control-actions">
@@ -266,6 +280,26 @@ export default defineComponent({
       }
     }
 
+    const handleSpacingChange = (val: number | number[]) => {
+      const value = Array.isArray(val) ? (val[0] ?? 0) : val ?? 0
+      localSpacing.value = Number(value) || 0
+      drawCompositeImage()
+    }
+
+    const handleFrameChange = (val: number | number[]) => {
+      const value = Array.isArray(val) ? (val[0] ?? 0) : val ?? 0
+      localFrameWidth.value = Number(value) || 0
+      drawCompositeImage()
+    }
+
+    const handleFontSizeChange = (val: any) => {
+      const num = Number(val?.target?.value ?? localFontSize.value)
+      if (!Number.isNaN(num)) {
+        localFontSize.value = String(num)
+        drawCompositeImage()
+      }
+    }
+
     function initSortable() {
       if (!sortableRef.value) return
       const sortable = new Sortable(sortableRef.value, {
@@ -338,6 +372,9 @@ export default defineComponent({
       downloadCompositeImage,
       fontOptions,
       sortableRef,
+      handleSpacingChange,
+      handleFrameChange,
+      handleFontSizeChange,
     }
   },
 })
