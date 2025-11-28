@@ -13,6 +13,12 @@ const route = useRoute()
 const router = useRouter()
 
 const showBack = computed(() => route.name !== 'home')
+const appBarTitle = computed(() => {
+  const name = route.name?.toString() ?? ''
+  if (name === 'spc-converter') return 'SPC File Converter'
+  if (name === 'fl-image-processor') return 'FL Image Processor'
+  return 'Toolbox'
+})
 
 const goBack = () => {
   if (window.history.length > 1) {
@@ -174,7 +180,7 @@ watch(currentLanguage, (newLanguage) => {
 
 <template>
   <div class="app-shell">
-    <var-app-bar class="app-bar" title="工具箱">
+    <var-app-bar class="app-bar" :title="appBarTitle">
       <template #left>
         <div class="app-bar-left">
           <var-button v-if="showBack" text round @click="goBack" aria-label="返回">
@@ -252,3 +258,4 @@ watch(currentLanguage, (newLanguage) => {
   padding: 0 18px 48px;
 }
 </style>
+

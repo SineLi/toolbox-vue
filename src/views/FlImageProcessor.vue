@@ -3,8 +3,6 @@ import { computed, onUnmounted, ref, watch } from 'vue'
 import MatchAndCrop from '../components/fl-image-processor/MatchAndCrop.vue'
 import ImageMerge from '../components/fl-image-processor/ImageMerge.vue'
 import ImageRegression from '../components/fl-image-processor/ImageRegression.vue'
-import mergeIllustration from '../assets/fl-image-processor/merge.png'
-import analyzeIllustration from '../assets/fl-image-processor/analyze.png'
 
 interface ProcessedImage {
   url: string
@@ -19,6 +17,7 @@ const steps = [
 ]
 
 const step = ref(-1)
+const activeStep = computed(() => (step.value >= 0 ? step.value : 0))
 const processedImages = ref<ProcessedImage[]>([])
 const fullRes = ref('')
 const nextDisable = ref(false)
@@ -110,48 +109,64 @@ onUnmounted(() => {
     }
   })
 })
+
+const md3Primary = 'var(--color-primary, #2563eb)'
 </script>
 
 <template>
   <div class="tool-page">
-    <header class="page__header">
-      <div>
-        <p class="eyebrow">Image toolkit</p>
-        <h1>FL Image Processor</h1>
-        <p class="lead">
-          Batch match and crop against a template, merge the results into one strip, then sample colors for quick
-          regression.
-        </p>
-      </div>
-    </header>
-
-    <div class="steps-grid">
-      <div
-        v-for="item in steps"
-        :key="item.key"
-        class="step-chip surface-card"
-        :class="{ 'step-chip--active': item.key === step }"
+    <var-card class="steps-card" :elevation="1">
+      <var-steps
+        class="steps-bar"
+        :active="activeStep"
+        direction="horizontal"
+        :active-color="md3Primary"
+        inactive-color="color-mix(in srgb, currentColor 16%, transparent)"
       >
-        <div class="step-chip__index">{{ item.key + 1 }}</div>
-        <div>
-          <div class="step-chip__title">{{ item.title }}</div>
-          <div class="step-chip__desc">{{ item.desc }}</div>
-        </div>
-      </div>
-    </div>
+        <var-step v-for="item in steps" :key="item.key">
+          <div class="step-meta">
+            <div class="step-meta__title">Step {{ item.key + 1 }} · {{ item.title }}</div>
+            <div class="step-meta__desc">{{ item.desc }}</div>
+          </div>
+        </var-step>
+      </var-steps>
+    </var-card>
 
     <div v-if="step === -1" class="welcome-grid">
-      <var-card class="welcome-card" title="Start from template" @click="jumpTo(0)">
-        <img :src="mergeIllustration" alt="Merge illustration" />
-        <p>Upload a template, align and crop multiple images, then arrange them together.</p>
+      <var-card class="welcome-card" :elevation="1" ripple @click="jumpTo(0)">
+        <div class="welcome-card__title-row">
+          <div>
+            <p class="welcome-card__eyebrow">Recommended</p>
+            <div class="welcome-card__title">Start with match & crop</div>
+          </div>
+          <!-- <var-chip type="primary" size="small" class="welcome-card__chip">Step 1</var-chip> -->
+        </div>
+        <p class="welcome-card__desc">
+          Upload a template, align and crop multiple images, then arrange them together for merging.
+        </p>
+        <div class="welcome-card__footer">
+          <span>Open match & crop</span>
+          <var-icon name="chevron-right" size="18" />
+        </div>
       </var-card>
-      <var-card class="welcome-card" title="Jump to analysis" @click="jumpTo(2)">
-        <img :src="analyzeIllustration" alt="Analysis illustration" />
-        <p>Already have a merged image? Skip straight to sampling and regression.</p>
+      <var-card class="welcome-card" :elevation="1" ripple @click="jumpTo(2)">
+        <div class="welcome-card__title-row">
+          <div>
+            <p class="welcome-card__eyebrow">Have a merged image</p>
+            <div class="welcome-card__title">Go straight to analysis</div>
+          </div>
+        </div>
+        <p class="welcome-card__desc">
+          Skip cropping and head directly to sampling and regression on your merged strip.
+        </p>
+        <div class="welcome-card__footer">
+          <span>Open regression</span>
+          <var-icon name="chevron-right" size="18" />
+        </div>
       </var-card>
     </div>
 
-    <section v-show="step === 0" class="panel">
+    <section v-show="step === 0">
       <MatchAndCrop @processingStart="handleProcessingStart" @processingFinished="handleProcessingFinished" />
     </section>
 
@@ -180,44 +195,42 @@ onUnmounted(() => {
   gap: 16px;
 }
 
-.steps-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px;
+.steps-card {
+  --card-border-radius: 20px;
+  padding: 8px;
 }
 
-.step-chip {
-  padding: 14px;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  border-radius: 14px;
-  border: 1px solid color-mix(in srgb, currentColor 8%, transparent);
-  background: var(--color-surface, #fff);
+.steps-bar {
+  padding: 8px;
+  border-radius: 16px;
 }
 
-.step-chip--active {
-  border-color: var(--color-primary, #2563eb);
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--color-primary, #2563eb) 12%, transparent);
+:deep(.var-step__horizontal) {
+  gap: 6px;
 }
 
-.step-chip__index {
-  width: 32px;
-  height: 32px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
+:deep(.var-step__horizontal-tag) {
+  box-shadow: 0 4px 10px color-mix(in srgb, currentColor 16%, transparent);
+}
+
+:deep(.var-step__horizontal-content) {
+  text-align: center;
+}
+
+.step-meta {
+  max-width: 200px;
+  margin: 0 auto;
+}
+
+.step-meta__title {
   font-weight: 700;
-  background: var(--color-primary-container, color-mix(in srgb, currentColor 16%, transparent));
+  font-size: 14px;
 }
 
-.step-chip__title {
-  font-weight: 700;
-}
-
-.step-chip__desc {
-  font-size: 13px;
-  color: #4b5563;
+.step-meta__desc {
+  font-size: 12px;
+  color: var(--color-on-surface-variant, #4b5563);
+  line-height: 1.5;
 }
 
 .welcome-grid {
@@ -227,16 +240,49 @@ onUnmounted(() => {
 }
 
 .welcome-card {
-  min-height: 320px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  --card-border-radius: 20px;
+  cursor: pointer;
 }
 
-.welcome-card img {
-  width: 100%;
-  object-fit: cover;
-  border-radius: 8px;
+.welcome-card__title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.welcome-card__eyebrow {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant, #4b5563);
+}
+
+.welcome-card__title {
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.welcome-card__desc {
+  margin: 0;
+  color: var(--color-on-surface-variant, #4b5563);
+  line-height: 1.5;
+}
+
+.welcome-card__chip {
+  margin-top: 2px;
+}
+
+.welcome-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  color: var(--color-primary, #2563eb);
 }
 
 .panel {
