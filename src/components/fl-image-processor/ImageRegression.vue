@@ -682,8 +682,11 @@ export default defineComponent({
 }
 
 .control-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
+  padding :12px
 }
 
 .label {

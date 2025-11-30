@@ -145,8 +145,10 @@ const md3Primary = 'var(--color-primary, #2563eb)'
       >
         <var-step v-for="item in steps" :key="item.key">
           <div class="step-meta">
-            <div class="step-meta__title">Step {{ item.key + 1 }} · {{ item.title }}</div>
-            <!-- <div class="step-meta__desc">{{ item.desc }}</div> -->
+            <var-tooltip :content=" item.desc">
+              <div class="step-meta__title">Step {{ item.key + 1 }} · {{ item.title }}</div>
+            </var-tooltip>
+
           </div>
         </var-step>
       </var-steps>

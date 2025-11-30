@@ -40,6 +40,7 @@ declare module 'vue' {
     VarStep: typeof import('@varlet/ui')['_StepComponent']
     VarSteps: typeof import('@varlet/ui')['_StepsComponent']
     VarSwitch: typeof import('@varlet/ui')['_SwitchComponent']
+    VarTooltip: typeof import('@varlet/ui')['_TooltipComponent']
     VarUploader: typeof import('@varlet/ui')['_UploaderComponent']
   }
 }
