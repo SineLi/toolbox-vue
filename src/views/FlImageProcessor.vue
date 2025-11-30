@@ -35,6 +35,23 @@ const canGoNext = computed(() => {
 })
 const hasBackHistory = computed(() => stepHistory.value.length > 0)
 
+const updateProcessedImages = (imageTasks: any[]) => {
+  const existingTexts = new Map(processedImages.value.map((img) => [img.url, img.text || '']))
+  processedImages.value = imageTasks
+    .filter((task) => task.processedDataUrl)
+    .map((task) => ({
+      url: task.processedDataUrl as string,
+      fileName: task.file.name as string,
+      text: existingTexts.get(task.processedDataUrl as string) || '',
+    }))
+  if (!processedImages.value.length && fullRes.value) {
+    if (fullRes.value.startsWith('blob:')) {
+      URL.revokeObjectURL(fullRes.value)
+    }
+    fullRes.value = ''
+  }
+}
+
 watch(
   step,
   (newVal, oldVal) => {
@@ -55,16 +72,16 @@ const handleProcessingStart = () => {
 
 const handleProcessingFinished = async (imageTasks: any[]) => {
   nextDisable.value = false
-  processedImages.value = imageTasks
-    .filter((task) => task.processedDataUrl)
-    .map((task) => ({
-      url: task.processedDataUrl as string,
-      fileName: task.file.name as string,
-      text: '',
-    }))
+  updateProcessedImages(imageTasks)
   if (processedImages.value.length && step.value < 1) {
     step.value = 1
   }
+  await nextTick()
+  imageMergeRef.value?.drawCompositeImage?.()
+}
+
+const handleTasksUpdated = async (imageTasks: any[]) => {
+  updateProcessedImages(imageTasks)
   await nextTick()
   imageMergeRef.value?.drawCompositeImage?.()
 }
@@ -129,7 +146,7 @@ const md3Primary = 'var(--color-primary, #2563eb)'
         <var-step v-for="item in steps" :key="item.key">
           <div class="step-meta">
             <div class="step-meta__title">Step {{ item.key + 1 }} · {{ item.title }}</div>
-            <div class="step-meta__desc">{{ item.desc }}</div>
+            <!-- <div class="step-meta__desc">{{ item.desc }}</div> -->
           </div>
         </var-step>
       </var-steps>
@@ -170,7 +187,11 @@ const md3Primary = 'var(--color-primary, #2563eb)'
     </div>
 
     <section v-show="step === 0">
-      <MatchAndCrop @processingStart="handleProcessingStart" @processingFinished="handleProcessingFinished" />
+      <MatchAndCrop
+        @processingStart="handleProcessingStart"
+        @processingFinished="handleProcessingFinished"
+        @tasksUpdated="handleTasksUpdated"
+      />
     </section>
 
     <section v-show="step === 1" class="panel">
@@ -200,7 +221,7 @@ const md3Primary = 'var(--color-primary, #2563eb)'
 
 .steps-card {
   --card-border-radius: 20px;
-  padding: 8px;
+  padding: 4px;
   background: var(--card-background)
 }
 
@@ -301,12 +322,12 @@ const md3Primary = 'var(--color-primary, #2563eb)'
   color: var(--color-primary, #2563eb);
 }
 
-.panel {
+/* .panel {
   background: var(--color-surface, #fff);
   border-radius: 18px;
   padding: 12px;
   box-shadow: 0 14px 32px color-mix(in srgb, currentColor 10%, transparent);
-}
+} */
 
 .nav-bar {
   position: sticky;

@@ -1,12 +1,7 @@
 ﻿<template>
   <div class="match-crop">
     <div class="panel-grid">
-      <var-card class="panel-card template-card">
-        <template #title>
-          <div class="card-title">
-            <span class="card-heading">Template image</span>
-          </div>
-        </template>
+      <var-card class="panel-card template-card" title="Template image">
         <var-uploader accept="image/*" :multiple="false" @after-read="handleTemplateAfterRead" :readonly="false" :deletable="false">
           <var-button type="primary" block>Upload template</var-button>
         </var-uploader>
@@ -15,12 +10,7 @@
         </div>
       </var-card>
 
-      <var-card class="panel-card process-card">
-        <template #title>
-          <div class="card-title">
-            <span class="card-heading">Images to process</span>
-          </div>
-        </template>
+      <var-card class="panel-card process-card" title="Images to process">
         <div class="actions">
           <var-uploader
             accept="image/*"
@@ -53,6 +43,9 @@
                     <span>{{ task.processing ? 'Processing' : 'No preview' }}</span>
                   </div>
                 </div>
+                <div class="task-actions">
+                  <var-button type="danger" size="small" text @click="removeTask(task.id)">Delete</var-button>
+                </div>
               </div>
             </var-cell>
           </template>
@@ -81,7 +74,7 @@ type UploaderFile = { file?: File }
 
 export default defineComponent({
   name: 'MatchAndCrop',
-  emits: ['imageProcessed', 'processingStart', 'processingFinished'],
+  emits: ['imageProcessed', 'processingStart', 'processingFinished', 'tasksUpdated'],
   setup(_, { emit }) {
     const templateDataUrl = ref<string | null>(null)
     let templateCannyMat: cv.Mat | null = null
@@ -143,6 +136,18 @@ export default defineComponent({
       if (imageTasks.some((task) => task.processing)) {
         processQueue()
       }
+    }
+
+    const emitTasksUpdated = () => {
+      emit('tasksUpdated', imageTasks)
+    }
+
+    const removeTask = (taskId: number) => {
+      const idx = imageTasks.findIndex((task) => task.id === taskId)
+      if (idx === -1) return
+      imageTasks.splice(idx, 1)
+      emitTasksUpdated()
+      emit('imageProcessed', imageTasks)
     }
 
     const addTask = async (file: File, originalDataUrl: string) =>
@@ -358,6 +363,7 @@ export default defineComponent({
       imageTasks,
       handleTemplateAfterRead,
       handleImagesAfterRead,
+      removeTask,
       progress,
       processedCount,
       formatSize,
@@ -401,8 +407,10 @@ export default defineComponent({
 
 .card-heading {
   font-weight: 700;
-  font-size: 24px;
-  padding: 20px;
+  font-size: 16px;
+  /* padding: 10x; */
+  margin-top: 16px;
+  margin-left: 18px;
 }
 
 .template-card .var-card__content,
@@ -463,7 +471,7 @@ export default defineComponent({
 
 .task-row__content {
   display: grid;
-  grid-template-columns: 1fr 230px;
+  grid-template-columns: 1fr 230px auto;
   gap: 12px;
   align-items: center;
 }
@@ -515,6 +523,11 @@ export default defineComponent({
   place-items: center;
   color: #9ca3af;
   font-size: 13px;
+}
+
+.task-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .empty {

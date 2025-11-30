@@ -3,13 +3,15 @@
     <var-card class="controls-card" title="Sampling">
       <template v-if="(props.fullRes && props.fullRes !== 'data:,') || uploadedImg">
         <div class="control-row">
-          <div class="control-item">
+          <div class="control-item" style="gap: 16px;">
             <span class="label">Sample size</span>
             <var-slider
-              :model-value="sampleSize"
+              v-model="sampleSize"
               :min="1"
               :max="50"
               track-color="#e5e7eb"
+              @change="handleSampleSizeChange"
+              @input="handleSampleSizeChange"
             />
           </div>
           <div class="control-item">
@@ -61,7 +63,7 @@
   </div>
 </template>
 
-<script lang="ts">
+<script  lang="ts">
 import { defineComponent, ref, watch, onUnmounted, onMounted } from 'vue'
 import seedrandom from 'seedrandom'
 // @ts-ignore
@@ -104,9 +106,10 @@ export default defineComponent({
       { label: 'Direct', value: 'direct' },
       { label: 'Instrument', value: 'instrument' },
     ]
+    const clamp = (val: number, min: number, max: number) => Math.min(max, Math.max(min, val))
     const handleSampleSizeChange = (val: number | number[]) => {
       const raw = Array.isArray(val) ? val[0] : val
-      const next = Number(raw) || 1
+      const next = clamp(Number(raw) || 1, 1, 50)
       sampleSize.value = next
       squares.value = squares.value.map((sq) => ({ ...sq, size: next }))
       redrawCanvas()
@@ -473,7 +476,8 @@ export default defineComponent({
 }
 
 .controls-card {
-  padding: 12px;
+  /* padding: 12px; */
+    border-radius: 16px;
 }
 
 .control-row {
@@ -486,7 +490,6 @@ export default defineComponent({
 .control-item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
 }
 
 .label {

@@ -1,46 +1,59 @@
 ﻿<template>
   <div class="image-merge">
     <var-card class="controls-card" title="Layout settings">
-      <div class="controls-grid">
-        <div class="control-item">
-          <span class="label">Spacing</span>
-          <var-slider
-            v-model="localSpacing"
-            :min="0"
-            :max="120"
-            :step="1"
-            track-color="#e5e7eb"
-            @input="handleSpacingChange"
-            @change="handleSpacingChange"
-          />
+      <div class="control-sections">
+        <div class="control-section">
+          <div class="section-title">Canvas</div>
+          <div class="controls-grid">
+            <div class="control-item slider-field">
+              <span class="label">Spacing</span>
+              <var-slider
+                v-model="localSpacing"
+                :min="0"
+                :max="120"
+                :step="1"
+                track-color="#e5e7eb"
+              />
+            </div>
+            <div class="control-item slider-field">
+              <span class="label">Frame size</span>
+              <var-slider
+                v-model="localFrameWidth"
+                :min="0"
+                :max="120"
+                :step="1"
+                track-color="#e5e7eb"
+              />
+            </div>
+            <div class="control-item">
+              <span class="label">Background</span>
+              <div class="color-row">
+                <input class="color-input" type="color" v-model="localBackgroundColor" @change="markNeedsRedraw" />
+                <span class="color-value">{{ localBackgroundColor }}</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="control-item">
-          <span class="label">Frame size</span>
-          <var-slider
-            v-model="localFrameWidth"
-            :min="0"
-            :max="120"
-            :step="1"
-            track-color="#e5e7eb"
-            @input="handleFrameChange"
-            @change="handleFrameChange"
-          />
-        </div>
-        <div class="control-item">
-          <span class="label">Background</span>
-          <input class="color-input" type="color" v-model="localBackgroundColor" @change="markNeedsRedraw" />
-        </div>
-        <div class="control-item">
-          <span class="label">Font size</span>
-          <var-input v-model="localFontSize" type="number" :min="10" @change="handleFontSizeChange" />
-        </div>
-        <div class="control-item">
-          <span class="label">Font family</span>
-          <var-select v-model="localFontFamily" :options="fontOptions" placeholder="Choose" @change="markNeedsRedraw" />
-        </div>
-        <div class="control-item">
-          <span class="label">Font color</span>
-          <input class="color-input" type="color" v-model="localFontColor" @change="markNeedsRedraw" />
+
+        <div class="control-section">
+          <div class="section-title">Text & captions</div>
+          <div class="controls-grid">
+            <div class="control-item">
+              <span class="label">Font size</span>
+              <var-input v-model="localFontSize" type="number" :min="10" @change="handleFontSizeChange" />
+            </div>
+            <div class="control-item">
+              <span class="label">Font family</span>
+              <var-select v-model="localFontFamily" :options="fontOptions" placeholder="Choose" @change="markNeedsRedraw" />
+            </div>
+            <div class="control-item">
+              <span class="label">Font color</span>
+              <div class="color-row">
+                <input class="color-input" type="color" v-model="localFontColor" @change="markNeedsRedraw" />
+                <span class="color-value">{{ localFontColor }}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="control-actions">
@@ -67,6 +80,9 @@
             @input="markNeedsRedraw"
             :ref="(el: any) => setInputRef(el, index)"
           />
+          <div class="row-actions">
+            <var-button type="danger" size="small" text @click="removeImage(index)">Delete</var-button>
+          </div>
         </div>
       </div>
     </var-card>
@@ -384,6 +400,23 @@ export default defineComponent({
       })
     }
 
+    async function removeImage(index: number) {
+      if (index < 0 || index >= orderedImages.value.length) return
+      orderedImages.value.splice(index, 1)
+      if (scaledImgsCache.value.length > index) {
+        scaledImgsCache.value.splice(index, 1)
+      }
+      inputRefs.value.splice(index, 1)
+      markNeedsRedraw()
+      await nextTick()
+      if (!orderedImages.value.length && canvas.value) {
+        const ctx = canvas.value.getContext('2d')
+        ctx?.clearRect(0, 0, canvas.value.width, canvas.value.height)
+        return
+      }
+      await drawCompositeImage()
+    }
+
     return {
       canvas,
       localSpacing,
@@ -403,6 +436,7 @@ export default defineComponent({
       markNeedsRedraw,
       handleSpacingChange,
       handleFrameChange,
+      removeImage,
     }
   },
 })
@@ -417,19 +451,56 @@ export default defineComponent({
 }
 
 .controls-card {
-  padding: 12px;
+  /* padding: 12px; */
+  border-radius: 16px;
+}
+
+.control-sections {
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 10px;
+}
+
+.control-section {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  /* background: color-mix(in srgb, var(--color-surface, #fff) 90%, var(--color-body, #f7f8fb) 10%); */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-on-surface-variant, #4b5563);
 }
 
 .controls-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
+  gap: 10px;
+  align-items: start;
 }
 
 .control-item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  /* gap: 4px; */
+  min-height: 75px;
+}
+
+.slider-field :deep(.var-slider) {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  padding: 4px 0;
+}
+
+.slider-field{
+  gap:16px;
 }
 
 .label {
@@ -445,10 +516,25 @@ export default defineComponent({
   width: 100%;
 }
 
+.color-row {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: 6px;
+  align-items: center;
+}
+
+.color-value {
+  font-size: 12px;
+  color: #4b5563;
+  font-family: ui-monospace, SFMono-Regular, SFMono, Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
 .control-actions {
   display: flex;
   gap: 10px;
   margin-top: 12px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .canvas-container {
@@ -469,7 +555,7 @@ export default defineComponent({
 
 .data-row {
   display: grid;
-  grid-template-columns: 32px 1fr 220px;
+  grid-template-columns: 32px 1fr 220px auto;
   gap: 10px;
   align-items: center;
   padding: 10px;
@@ -492,4 +578,25 @@ export default defineComponent({
 .caption-input {
   width: 100%;
 }
+
+.row-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 720px) {
+  .data-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .drag-handle {
+    justify-self: flex-start;
+  }
+
+  .row-actions {
+    justify-content: flex-start;
+  }
+}
+
 </style>
