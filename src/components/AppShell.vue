@@ -138,6 +138,8 @@ const applyTheme = (theme: 'light' | 'dark') => {
   toggleDark(theme === 'dark')
 }
 
+
+
 const initThemeAndLanguage = () => {
   const theme = getCookie('theme')
   const language = getCookie('language')

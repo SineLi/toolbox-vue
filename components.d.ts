@@ -12,6 +12,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppShell: typeof import('./src/components/AppShell.vue')['default']
+    ElUpload: typeof import('element-plus/es')['ElUpload']
     ImageMerge: typeof import('./src/components/fl-image-processor/ImageMerge.vue')['default']
     ImageRegression: typeof import('./src/components/fl-image-processor/ImageRegression.vue')['default']
     MatchAndCrop: typeof import('./src/components/fl-image-processor/MatchAndCrop.vue')['default']
