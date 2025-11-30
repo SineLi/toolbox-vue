@@ -54,20 +54,21 @@
         <var-select v-model="plotType" :options="plotOptions" placeholder="Chart type" />
         <var-select v-model="weightMethod" :options="weightOptions" placeholder="Weighting" :disabled="plotType === 'bar'" />
         <var-button type="primary" @click="calculateFormula">Calculate</var-button>
+        <var-button type="success" @click="downloadSamples">Download CSV</var-button>
       </div>
     </var-card>
 
     <var-card class="controls-card" title="Chart">
-      <div ref="plotlyChart" class="chart"></div>
+      <div ref="chartRef" class="chart"></div>
     </var-card>
   </div>
 </template>
 
 <script  lang="ts">
-import { defineComponent, ref, watch, onUnmounted, onMounted } from 'vue'
+import { defineComponent, ref, watch, onUnmounted, onMounted, nextTick } from 'vue'
 import seedrandom from 'seedrandom'
-// @ts-ignore
-import Plotly from 'plotly.js-dist-min'
+import * as echarts from 'echarts'
+import { useDark } from '@vueuse/core'
 
 export default defineComponent({
   name: 'ImageRegression',
@@ -84,7 +85,16 @@ export default defineComponent({
     const randomSeed = ref<string>('')
     const uploadedImg = ref<string>('')
     const fileInput = ref<HTMLInputElement | null>(null)
-    type SamplePoint = { id: number; x: number; y: number; size: number; num?: string; result?: number; stdDev?: number }
+    type SamplePoint = {
+      id: number
+      x: number
+      y: number
+      size: number
+      num?: string
+      result?: number
+      stdDev?: number
+      avgRGB?: { r: number; g: number; b: number }
+    }
     const squares = ref<SamplePoint[]>([])
     const squareIdCounter = ref<number>(1)
     const currentImg = ref<HTMLImageElement | null>(null)
@@ -95,7 +105,6 @@ export default defineComponent({
     const formula = ref<string>('')
     const weightMethod = ref<'none' | 'direct' | 'instrument'>('none')
     const plotType = ref<'scatter' | 'bar'>('scatter')
-    const plotlyChart = ref<HTMLElement | null>(null)
 
     const plotOptions = [
       { label: 'Scatter', value: 'scatter' },
@@ -106,6 +115,11 @@ export default defineComponent({
       { label: 'Direct', value: 'direct' },
       { label: 'Instrument', value: 'instrument' },
     ]
+    const chartRef = ref<HTMLElement | null>(null)
+    let chartInstance: echarts.ECharts | null = null
+    let resizeObserver: ResizeObserver | null = null
+    const isDark = useDark()
+    let currentChartTheme: 'light' | 'dark' = isDark.value ? 'dark' : 'light'
     const clamp = (val: number, min: number, max: number) => Math.min(max, Math.max(min, val))
     const handleSampleSizeChange = (val: number | number[]) => {
       const raw = Array.isArray(val) ? val[0] : val
@@ -251,6 +265,7 @@ export default defineComponent({
       squares.value = squares.value.map((square) => {
         const half = square.size / 2
         const results: number[] = []
+        let rgbSum = { r: 0, g: 0, b: 0, count: 0 }
 
         for (let i = 0; i < 10; i++) {
           const fullX = square.x / scale.value - half / scale.value + random() * (square.size / scale.value)
@@ -258,6 +273,10 @@ export default defineComponent({
 
           const pixel = ctx.getImageData(Math.floor(fullX), Math.floor(fullY), 1, 1).data
           const [r = 0, g = 0, b = 0] = pixel
+          rgbSum.r += r
+          rgbSum.g += g
+          rgbSum.b += b
+          rgbSum.count += 1
           const R = r / 255
           const G = g / 255
           const B = b / 255
@@ -277,11 +296,20 @@ export default defineComponent({
         const mean = results.length > 0 ? results.reduce((a, b) => a + b) / results.length : undefined
         const stdDev =
           results.length > 0 ? Math.sqrt(results.reduce((acc, val) => acc + Math.pow(val - mean!, 2), 0) / results.length) : undefined
+        const avgRGB =
+          rgbSum.count > 0
+            ? {
+                r: +(rgbSum.r / rgbSum.count).toFixed(2),
+                g: +(rgbSum.g / rgbSum.count).toFixed(2),
+                b: +(rgbSum.b / rgbSum.count).toFixed(2),
+              }
+            : undefined
 
         return {
           ...square,
           result: mean,
           stdDev: stdDev,
+          avgRGB,
         }
       })
 
@@ -336,7 +364,103 @@ export default defineComponent({
       return { slope, intercept, rSquared }
     }
 
+    function downloadSamples() {
+      const rows = squares.value
+        .filter((sq) => sq.result !== undefined)
+        .map((sq) => ({
+          id: sq.id,
+          label: sq.num ?? '',
+          r: sq.avgRGB?.r ?? '',
+          g: sq.avgRGB?.g ?? '',
+          b: sq.avgRGB?.b ?? '',
+          result: sq.result ?? '',
+          stdDev: sq.stdDev ?? '',
+        }))
+      if (!rows.length) {
+        return
+      }
+      const header = ['id', 'label', 'R', 'G', 'B', 'result', 'stdDev']
+      const lines = [header.join(',')]
+      for (const row of rows) {
+        lines.push(
+          [
+            row.id,
+            row.label,
+            row.r,
+            row.g,
+            row.b,
+            typeof row.result === 'number' ? row.result.toFixed(6) : row.result,
+            typeof row.stdDev === 'number' ? row.stdDev.toFixed(6) : row.stdDev,
+          ].join(','),
+        )
+      }
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'sample_data.csv'
+      link.click()
+      URL.revokeObjectURL(url)
+    }
+
+    const initChartWithRetry = (attempt = 0): echarts.ECharts | null => {
+      if (!chartRef.value) return null
+      const { clientWidth, clientHeight } = chartRef.value
+      if ((clientWidth === 0 || clientHeight === 0) && attempt < 8) {
+        setTimeout(() => initChartWithRetry(attempt + 1), 120)
+        return null
+      }
+      chartInstance = chartInstance ?? echarts.init(chartRef.value, currentChartTheme === 'dark' ? 'dark' : undefined)
+      return chartInstance
+    }
+
+    function createErrorBarSeries(data: Array<[number | string, number, number]>) {
+      return {
+        name: 'Std dev',
+        type: 'custom',
+        renderItem: (params: any, api: any) => {
+          const xValue = api.value(0)
+          const yValue = api.value(1)
+          const err = api.value(2) || 0
+          const low = api.coord([xValue, yValue - err])
+          const high = api.coord([xValue, yValue + err])
+          const cap = 6
+          return {
+            type: 'group',
+            children: [
+              {
+                type: 'line',
+                shape: { x1: low[0], y1: low[1], x2: high[0], y2: high[1] },
+                style: { stroke: '#909399', lineWidth: 1 },
+              },
+              {
+                type: 'line',
+                shape: { x1: low[0] - cap / 2, y1: low[1], x2: low[0] + cap / 2, y2: low[1] },
+                style: { stroke: '#909399', lineWidth: 1 },
+              },
+              {
+                type: 'line',
+                shape: { x1: high[0] - cap / 2, y1: high[1], x2: high[0] + cap / 2, y2: high[1] },
+                style: { stroke: '#909399', lineWidth: 1 },
+              },
+            ],
+          }
+        },
+        encode: { x: 0, y: [1, 2] },
+        data,
+        z: 10,
+        tooltip: {
+          formatter: (params: any) => `±${params.value?.[2] ?? 0}`,
+        },
+      } as echarts.SeriesOption
+    }
+
     function updateChart() {
+      const inst = chartInstance ?? initChartWithRetry()
+      if (!inst) {
+        setTimeout(updateChart, 180)
+        return
+      }
       const isCompleteSample = (square: SamplePoint): square is SamplePoint & { num: number; result: number } =>
         square.num !== undefined &&
         square.result !== undefined &&
@@ -346,96 +470,132 @@ export default defineComponent({
       const validData = squares.value.filter(isCompleteSample)
 
       const pairs = validData.map((d) => [Number(d.num), Number(d.result)] as [number, number])
-      const x = pairs.map(([val]) => val)
-      const y = pairs.map(([, val]) => val)
-      const error_y = validData.map((d) => Number(d.stdDev) || 0)
+      const xVals = pairs.map(([val]) => val)
+      const yVals = pairs.map(([, val]) => val)
+      const errorVals = validData.map((d) => Number(d.stdDev) || 0)
 
-      let traces: any[] = []
+      if (!validData.length) {
+        inst.setOption({
+          title: { text: 'No data', left: 'center' },
+          xAxis: { type: 'value', name: 'Number' },
+          yAxis: { type: 'value', name: 'Result' },
+          series: [],
+        })
+        inst.resize()
+        return
+      }
+
+      const series: echarts.SeriesOption[] = []
 
       if (plotType.value === 'scatter') {
-        const scatterTrace = {
-          x,
-          y,
-          error_y: {
-            type: 'data',
-            array: error_y,
-            visible: true,
-            color: '#409EFF',
-          },
-          mode: 'markers',
-          type: 'scatter',
+        const scatterSeries: echarts.SeriesOption = {
           name: 'Data points',
-          marker: {
-            color: '#409EFF',
-            size: 10,
-          },
+          type: 'scatter',
+          data: pairs.map((pair, idx) => ({
+            value: pair,
+            std: errorVals[idx],
+          })),
+          symbolSize: 10,
+          itemStyle: { color: '#409EFF' },
         }
-        traces.push(scatterTrace)
+        series.push(scatterSeries)
 
-        const weights = error_y.map((sigma) => {
+        if (errorVals.some((v) => v > 0)) {
+          series.push(createErrorBarSeries(pairs.map((pair, idx) => [pair[0], pair[1], errorVals[idx]])))
+        }
+
+        const weights = errorVals.map((sigma) => {
           if (weightMethod.value === 'direct') return sigma > 0 ? 1 / sigma : 1
           if (weightMethod.value === 'instrument') return sigma > 0 ? 1 / (sigma * sigma) : 1
           return 1
         })
 
         const regression = calculateRegression(pairs, weightMethod.value === 'none' ? [] : weights)
-        if (regression && x.length >= 2) {
-          const xMin = Math.min(...x)
-          const xMax = Math.max(...x)
-          traces.push({
-            x: [xMin, xMax],
-            y: [regression.slope * xMin + regression.intercept, regression.slope * xMax + regression.intercept],
-            mode: 'lines',
-            type: 'scatter',
-            name: `Regression (R^2 = ${regression.rSquared.toFixed(4)})`,
-            line: { color: '#F56C6C', width: 2 },
+        if (regression && xVals.length >= 2) {
+          const xMin = Math.min(...xVals)
+          const xMax = Math.max(...xVals)
+          series.push({
+            name: `Regression (R² = ${regression.rSquared.toFixed(4)})`,
+            type: 'line',
+            symbol: 'none',
+            data: [
+              [xMin, regression.slope * xMin + regression.intercept],
+              [xMax, regression.slope * xMax + regression.intercept],
+            ],
+            lineStyle: { color: '#F56C6C', width: 2 },
           })
         }
       } else {
-        traces.push({
-          x,
-          y,
-          type: 'bar',
+        series.push({
           name: 'Values',
-          error_y: {
-            type: 'data',
-            array: error_y,
-            visible: true,
-            color: '#409EFF',
-          },
-          marker: {
-            color: '#409EFF',
-          },
+          type: 'bar',
+          data: yVals,
+          itemStyle: { color: '#409EFF' },
         })
+        if (errorVals.some((v) => v > 0)) {
+          series.push(createErrorBarSeries(validData.map((d, idx) => [String(xVals[idx]), yVals[idx], errorVals[idx]])))
+        }
       }
 
-      const layout = {
-        title: plotType.value === 'scatter' ? 'Linear regression' : 'Data distribution',
-        xaxis: { title: 'Number' },
-        yaxis: { title: 'Result' },
-        showlegend: true,
-        hovermode: 'closest',
-        barmode: 'relative',
+      const option: echarts.EChartsOption = {
+        title: {
+          text: plotType.value === 'scatter' ? 'Linear regression' : 'Data distribution',
+          left: 'center',
+          top: 8,
+        },
+        legend: { top: 36 },
+        tooltip: { trigger: plotType.value === 'bar' ? 'axis' : 'item' },
+        grid: { left: 60, right: 20, top: 70, bottom: 50 },
+        xAxis:
+          plotType.value === 'scatter'
+            ? { type: 'value', name: 'Number' }
+            : { type: 'category', name: 'Number', data: xVals.map((v) => String(v)) },
+        yAxis: { type: 'value', name: 'Result' },
+        series,
       }
 
-      if (plotlyChart.value) {
-        Plotly.newPlot(plotlyChart.value, traces, layout)
-      }
+      inst.setOption(option, true)
+      inst.resize()
     }
 
     onMounted(() => {
-      if (plotlyChart.value) {
-        Plotly.newPlot(plotlyChart.value, [], {})
-      }
+      nextTick(() => {
+        if (chartRef.value) {
+          initChartWithRetry()
+          resizeObserver = new ResizeObserver(() => {
+            chartInstance?.resize()
+          })
+          resizeObserver.observe(chartRef.value)
+        }
+      })
     })
+
+    watch(
+      isDark,
+      (val) => {
+        currentChartTheme = val ? 'dark' : 'light'
+        if (chartInstance) {
+          chartInstance.dispose()
+          chartInstance = null
+        }
+        initChartWithRetry()
+        updateChart()
+      },
+      { flush: 'post' },
+    )
 
     onUnmounted(() => {
       isLoading.value = true
       if (uploadedImg.value && uploadedImg.value.startsWith('blob:')) {
         URL.revokeObjectURL(uploadedImg.value)
       }
-      if (plotlyChart.value) {
-        Plotly.purge(plotlyChart.value)
+      if (chartInstance) {
+        chartInstance.dispose()
+        chartInstance = null
+      }
+      if (resizeObserver) {
+        resizeObserver.disconnect()
+        resizeObserver = null
       }
     })
 
@@ -462,7 +622,8 @@ export default defineComponent({
       plotOptions,
       weightOptions,
       handleSampleSizeChange,
-      plotlyChart,
+      chartRef,
+      downloadSamples,
     }
   },
 })
@@ -494,7 +655,7 @@ export default defineComponent({
 
 .label {
   font-size: 13px;
-  color: #4b5563;
+  /* color: #4b5563; */
 }
 
 .canvas-container {
