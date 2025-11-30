@@ -418,7 +418,7 @@ export default defineComponent({
       return {
         name: 'Std dev',
         type: 'custom',
-        renderItem: (params: any, api: any) => {
+        renderItem: (_: any, api: any) => {
           const xValue = api.value(0)
           const yValue = api.value(1)
           const err = api.value(2) || 0
@@ -501,7 +501,9 @@ export default defineComponent({
         series.push(scatterSeries)
 
         if (errorVals.some((v) => v > 0)) {
-          series.push(createErrorBarSeries(pairs.map((pair, idx) => [pair[0], pair[1], errorVals[idx]])))
+          series.push(
+            createErrorBarSeries(pairs.map((pair, idx) => [pair[0], pair[1], errorVals[idx] ?? 0] as [number | string, number, number])),
+          )
         }
 
         const weights = errorVals.map((sigma) => {
@@ -533,7 +535,11 @@ export default defineComponent({
           itemStyle: { color: '#409EFF' },
         })
         if (errorVals.some((v) => v > 0)) {
-          series.push(createErrorBarSeries(validData.map((d, idx) => [String(xVals[idx]), yVals[idx], errorVals[idx]])))
+          series.push(
+            createErrorBarSeries(
+              validData.map((_, idx) => [String(xVals[idx]), yVals[idx] ?? 0, errorVals[idx] ?? 0] as [string, number, number]),
+            ),
+          )
         }
       }
 
