@@ -40,7 +40,13 @@
       <var-list>
         <var-cell v-for="square in squares" :key="square.id" border :title="`Sample ${square.id}`">
           <div class="sample-row">
-            <var-input v-model="square.num" type="number" placeholder="Number" />
+            <var-input
+              v-model="square.num"
+              type="number"
+              placeholder="Number"
+              @keyup.enter="focusNextSample(square.id)"
+              :ref="(el: any) => setSampleInputRef(el, square.id)"
+            />
             <div class="sample-result">{{ square.result?.toFixed(4) || '-' }}</div>
             <var-button type="danger" size="small" @click="removeSquare(square.id)">Remove</var-button>
           </div>
@@ -120,6 +126,7 @@ export default defineComponent({
     let resizeObserver: ResizeObserver | null = null
     const isDark = useDark()
     let currentChartTheme: 'light' | 'dark' = isDark.value ? 'dark' : 'light'
+    const sampleInputRefs = ref<Record<number, HTMLElement | null>>({})
     const clamp = (val: number, min: number, max: number) => Math.min(max, Math.max(min, val))
     const handleSampleSizeChange = (val: number | number[]) => {
       const raw = Array.isArray(val) ? val[0] : val
@@ -252,6 +259,24 @@ export default defineComponent({
     function removeSquare(id: number) {
       squares.value = squares.value.filter((sq) => sq.id !== id)
       redrawCanvas()
+    }
+
+    function setSampleInputRef(el: any, id: number) {
+      sampleInputRefs.value[id] = el ? el.$el?.querySelector?.('input') ?? el.$el : null
+    }
+
+    function focusNextSample(id: number) {
+      const idx = squares.value.findIndex((sq) => sq.id === id)
+      if (idx === -1) return
+      const next = squares.value[idx + 1]?.id
+      if (!next) return
+      nextTick(() => {
+        const el = sampleInputRefs.value[next]
+        if (el) {
+          ;(el as HTMLElement).focus()
+          ;(el as HTMLInputElement).select?.()
+        }
+      })
     }
 
     function calculateFormula() {
@@ -620,6 +645,8 @@ export default defineComponent({
       handleMouseLeave,
       handleCanvasClick,
       removeSquare,
+      setSampleInputRef,
+      focusNextSample,
       isLoading,
       formula,
       calculateFormula,
