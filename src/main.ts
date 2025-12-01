@@ -4,7 +4,8 @@ import ElementPlus from 'element-plus'
 import App from './App.vue'
 import router from './router'
 import './style.css'
-// import '@varlet/ui/es/style.js'
+import '@varlet/ui/es/style'
+import '@varlet/touch-emulator'
 import 'element-plus/dist/index.css'
 
 const app = createApp(App)

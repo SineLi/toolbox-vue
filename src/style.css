@@ -74,10 +74,18 @@ h1 {
   border: 1px solid color-mix(in srgb, currentColor 6%, transparent);
   border-radius: 18px;
   box-shadow: 0 8px 28px color-mix(in srgb, currentColor 12%, transparent);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  /* transition: transform 0.2s ease, box-shadow 0.2s ease; */
 }
 
 .surface-card:hover {
-  transform: translateY(-1px);
+  /* transform: translateY(-1px); */
   box-shadow: 0 12px 32px color-mix(in srgb, currentColor 16%, transparent);
+}
+:root,
+body,
+.app-shell,
+.panel,
+.var-card__floater,
+.var-app-bar {
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }

@@ -4,6 +4,8 @@ import AppShell from './components/AppShell.vue'
 
 <template>
   <AppShell>
-    <RouterView />
+    <RouterView v-slot="{ Component, route }">
+      <component :is="Component" :key="route.fullPath" />
+    </RouterView>
   </AppShell>
 </template>

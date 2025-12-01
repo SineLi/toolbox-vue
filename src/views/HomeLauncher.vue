@@ -2,8 +2,13 @@
 const tools = [
   {
     name: 'SPC File Converter',
-    desc: '将 .spd 光谱数据转换为 CSV，支持多文件选择、批量打包下载。',
+    desc: 'Convert .spd spectral data to CSV with multi-file selection and batch downloads.',
     path: '/spc-converter',
+  },
+  {
+    name: 'FL Image Processor',
+    desc: 'Template match and crop images, merge them, and run quick color regression.',
+    path: '/fl-image-processor',
   },
 ]
 </script>
@@ -12,22 +17,24 @@ const tools = [
   <div class="page">
     <header class="page__header">
       <div>
-        <p class="eyebrow">工具箱</p>
-        <h1>选择一个工具开始</h1>
-        <p class="lead">常用小工具集合，点击卡片进入对应页面。</p>
+        <p class="eyebrow">Tools</p>
+        <h1>Choose a utility</h1>
+        <p class="lead">Click a card to open a focused tool in this workspace.</p>
       </div>
     </header>
 
     <div class="tools-grid">
-      <RouterLink v-for="tool in tools" :key="tool.path" :to="tool.path" class="tool-card surface-card">
-        <div class="tool-card__body">
-          <h2>{{ tool.name }}</h2>
-          <p>{{ tool.desc }}</p>
-        </div>
-        <div class="tool-card__footer">
-          <span>进入</span>
-          <span aria-hidden="true">→</span>
-        </div>
+      <RouterLink v-for="tool in tools" :key="tool.path" :to="tool.path" class="tool-link">
+        <var-card class="tool-card" :elevation="2" ripple>
+          <div class="tool-card__body">
+            <h2 class="tool-card__title">{{ tool.name }}</h2>
+            <p class="tool-card__desc">{{ tool.desc }}</p>
+          </div>
+          <div class="tool-card__footer">
+            <span>Open</span>
+            <var-icon name="chevron-right" size="18" />
+          </div>
+        </var-card>
       </RouterLink>
     </div>
   </div>
@@ -36,28 +43,60 @@ const tools = [
 <style scoped>
 .tools-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 16px;
   margin-top: 10px;
 }
 
-.tool-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 18px 16px;
+.tool-link {
   color: inherit;
   text-decoration: none;
+  display: block;
+  height: 100%;
 }
 
-.tool-card__body h2 {
+.tool-card {
+  /* --card-background: var(--color-surface, #ffffff); */
+  --card-border-radius: 16px;
+  --card-padding: 18px 16px;
+  /* --card-title-color: var(--color-text, #111827);
+  --card-content-color: var(--color-on-surface-variant, #4b5563); */
+  min-height: 220px;
+  height: 100%;
+  border-radius: 16px;
+  /* transition: transform 0.16s ease, box-shadow 0.16s ease; */
+}
+
+.tool-card {
+  transform: translateY(0) scale(1);
+  box-shadow: (.1,.5,.1,1);
+  transition: transform 180ms cubic-bezier(.2,.8,.2,1), box-shadow 180ms cubic-bezier(.2,.8,.2,1);
+  will-change: transform, box-shadow;
+}
+
+.tool-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+}
+
+.tool-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  color: var(--color-text, #111827);
+}
+
+.tool-card__title {
   margin: 0;
-  font-size: 18px;
+  font-size: 22px;
+  letter-spacing: -0.01em;
 }
 
-.tool-card__body p {
-  margin: 4px 0 0;
-  color: #4b5563;
+.tool-card__desc {
+  margin: 0;
+  color: var(--color-on-surface-variant, #4b5563);
+  line-height: 1.5;
 }
 
 .tool-card__footer {
@@ -65,6 +104,14 @@ const tools = [
   align-items: center;
   justify-content: space-between;
   font-weight: 600;
-  color: #2563eb;
+  color: var(--color-primary, #2563eb);
+  margin-top: 16px;
+}
+
+:deep(.var-card__container) {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 8px;
 }
 </style>

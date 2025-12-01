@@ -409,6 +409,9 @@ export default defineComponent({
 </script>
 
 <style scoped>
+.body{
+  padding-top: 12px;
+}
 .container {
   display: flex;
   flex-direction: column;
