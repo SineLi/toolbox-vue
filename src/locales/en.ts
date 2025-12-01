@@ -7,6 +7,7 @@ const en = {
     home: 'Toolbox',
     spc: 'SPC File Converter',
     fl: 'FL Image Processor',
+    info: 'Info & Logs',
   },
   common: {
     back: 'Back',
@@ -180,6 +181,15 @@ const en = {
       tooltipStd: '±{value}',
     },
     csvName: 'sample_data.csv',
+  },
+  info: {
+    title: 'Info & Logs',
+    subtitle: 'Workspace notes',
+    lead: 'Markdown files placed in src/logs will show up here automatically.',
+    refresh: 'Refresh',
+    empty: 'No markdown files found in src/logs.',
+    noSelection: 'Select a file',
+    noContent: 'No content to display.',
   },
 }
 

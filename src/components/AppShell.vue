@@ -20,6 +20,7 @@ const appBarTitle = computed(() => {
   const name = route.name?.toString() ?? ''
   if (name === 'spc-converter') return t('nav.spc')
   if (name === 'fl-image-processor') return t('nav.fl')
+  if (name === 'info-center') return t('nav.info')
   return t('nav.home')
 })
 
@@ -29,6 +30,10 @@ const goBack = () => {
   } else {
     router.push({ name: 'home' })
   }
+}
+
+const goInfo = () => {
+  router.push({ name: 'info-center' })
 }
 
 const CAUTheme = {
@@ -213,6 +218,9 @@ watch(currentLanguage, (newLanguage) => {
             </var-cell>
           </template>
         </var-menu>
+        <var-button text round @click="goInfo">
+          <var-icon name="information-outline" />
+        </var-button>
       </template>
     </var-app-bar>
 
