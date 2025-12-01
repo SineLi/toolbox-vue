@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import MatchAndCrop from '../components/fl-image-processor/MatchAndCrop.vue'
 import ImageMerge from '../components/fl-image-processor/ImageMerge.vue'
 import ImageRegression from '../components/fl-image-processor/ImageRegression.vue'
@@ -10,18 +11,20 @@ interface ProcessedImage {
   text?: string
 }
 
-const steps = [
-  { key: 0, title: 'Match & crop', desc: 'Use a template image to batch match and crop incoming files.' },
-  { key: 1, title: 'Order & label', desc: 'Reorder cropped images, add captions, and generate a combined strip.' },
-  { key: 2, title: 'Analyze colors', desc: 'Sample points and run quick regression on the merged image.' },
-]
+const { t } = useI18n()
+
+const steps = computed(() => [
+  { key: 0, title: t('flPage.steps.match.title'), desc: t('flPage.steps.match.desc') },
+  { key: 1, title: t('flPage.steps.order.title'), desc: t('flPage.steps.order.desc') },
+  { key: 2, title: t('flPage.steps.analyze.title'), desc: t('flPage.steps.analyze.desc') },
+])
 
 const step = ref(-1)
 const activeStep = computed(() => (step.value >= 0 ? step.value : 0))
 const processedImages = ref<ProcessedImage[]>([])
 const fullRes = ref('')
 const nextDisable = ref(false)
-const maxStep = steps.length - 1
+const maxStep = computed(() => steps.value.length - 1)
 const stepHistory = ref<number[]>([])
 const isNavigatingBack = ref(false)
 const imageMergeRef = ref<InstanceType<typeof ImageMerge> | null>(null)
@@ -100,7 +103,7 @@ const prevStep = () => {
 }
 
 const nextStep = () => {
-  if (step.value < maxStep && canGoNext.value) {
+  if (step.value < maxStep.value && canGoNext.value) {
     step.value += 1
   }
 }
@@ -145,8 +148,10 @@ const md3Primary = 'var(--color-primary, #2563eb)'
       >
         <var-step v-for="item in steps" :key="item.key">
           <div class="step-meta">
-            <var-tooltip :content=" item.desc">
-              <div class="step-meta__title">Step {{ item.key + 1 }} · {{ item.title }}</div>
+            <var-tooltip :content="item.desc">
+              <div class="step-meta__title">
+                {{ t('flPage.stepLabel', { num: item.key + 1, title: item.title }) }}
+              </div>
             </var-tooltip>
 
           </div>
@@ -158,31 +163,31 @@ const md3Primary = 'var(--color-primary, #2563eb)'
       <var-card class="welcome-card" :elevation="1" ripple @click="jumpTo(0)">
         <!-- <div class="welcome-card__title-row"> -->
           <div>
-            <p class="welcome-card__eyebrow">Recommended</p>
-            <div class="welcome-card__title">Start with match & crop</div>
+            <p class="welcome-card__eyebrow">{{ t('flPage.welcome.recommended') }}</p>
+            <div class="welcome-card__title">{{ t('flPage.welcome.startMatch') }}</div>
           </div>
           <!-- <var-chip type="primary" size="small" class="welcome-card__chip">Step 1</var-chip> -->
         <!-- </div> -->
         <p class="welcome-card__desc">
-          Upload a template, align and crop multiple images, then arrange them together for merging.
+          {{ t('flPage.welcome.startDesc') }}
         </p>
         <div class="welcome-card__footer">
-          <span>Open match & crop</span>
+          <span>{{ t('flPage.welcome.openMatch') }}</span>
           <var-icon name="chevron-right" size="18" />
         </div>
       </var-card>
       <var-card class="welcome-card" :elevation="1" ripple @click="jumpTo(2)">
         <!-- <div class="welcome-card__title-row"> -->
           <div>
-            <p class="welcome-card__eyebrow">Have a merged image</p>
-            <div class="welcome-card__title">Go straight to analysis</div>
+            <p class="welcome-card__eyebrow">{{ t('flPage.welcome.haveMerged') }}</p>
+            <div class="welcome-card__title">{{ t('flPage.welcome.goAnalyze') }}</div>
           </div>
         <!-- </div> -->
         <p class="welcome-card__desc">
-          Skip cropping and head directly to sampling and regression on your merged strip.
+          {{ t('flPage.welcome.skipDesc') }}
         </p>
         <div class="welcome-card__footer">
-          <span>Open regression</span>
+          <span>{{ t('flPage.welcome.openRegression') }}</span>
           <var-icon name="chevron-right" size="18" />
         </div>
       </var-card>
@@ -205,10 +210,16 @@ const md3Primary = 'var(--color-primary, #2563eb)'
     </section>
 
     <div class="nav-bar" v-if="step >= 0">
-      <var-button type="warning" text @click="goBackStep" :disabled="!hasBackHistory">Back</var-button>
+      <var-button type="warning" text @click="goBackStep" :disabled="!hasBackHistory">
+        {{ t('flPage.nav.back') }}
+      </var-button>
       <div class="nav-actions">
-        <var-button @click="prevStep" :disabled="step === 0">Previous</var-button>
-        <var-button type="primary" @click="nextStep" :disabled="!canGoNext || step === maxStep">Next</var-button>
+        <var-button @click="prevStep" :disabled="step === 0">
+          {{ t('flPage.nav.previous') }}
+        </var-button>
+        <var-button type="primary" @click="nextStep" :disabled="!canGoNext || step === maxStep">
+          {{ t('flPage.nav.next') }}
+        </var-button>
       </div>
     </div>
   </div>

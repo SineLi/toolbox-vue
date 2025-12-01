@@ -1,12 +1,12 @@
 ﻿<template>
   <div class="image-merge">
-    <var-card class="controls-card" title="Layout settings">
+    <var-card class="controls-card" :title="t('imageMerge.layoutTitle')">
       <div class="control-sections">
         <div class="control-section">
-          <div class="section-title">Canvas</div>
+          <div class="section-title">{{ t('imageMerge.canvasSection') }}</div>
           <div class="controls-grid">
             <div class="control-item slider-field">
-              <span class="label">Spacing</span>
+              <span class="label">{{ t('imageMerge.spacing') }}</span>
               <var-slider
                 v-model="localSpacing"
                 :min="0"
@@ -16,7 +16,7 @@
               />
             </div>
             <div class="control-item slider-field">
-              <span class="label">Frame size</span>
+              <span class="label">{{ t('imageMerge.frameSize') }}</span>
               <var-slider
                 v-model="localFrameWidth"
                 :min="0"
@@ -26,7 +26,7 @@
               />
             </div>
             <div class="control-item">
-              <span class="label">Background</span>
+              <span class="label">{{ t('imageMerge.background') }}</span>
               <div class="color-row">
                 <input class="color-input" type="color" v-model="localBackgroundColor" @change="markNeedsRedraw" />
                 <span class="color-value">{{ localBackgroundColor }}</span>
@@ -36,18 +36,23 @@
         </div>
 
         <div class="control-section">
-          <div class="section-title">Text & captions</div>
+          <div class="section-title">{{ t('imageMerge.textSection') }}</div>
           <div class="controls-grid">
             <div class="control-item">
-              <span class="label">Font size</span>
+              <span class="label">{{ t('imageMerge.fontSize') }}</span>
               <var-input v-model="localFontSize" type="number" :min="10" @change="handleFontSizeChange" />
             </div>
             <div class="control-item">
-              <span class="label">Font family</span>
-              <var-select v-model="localFontFamily" :options="fontOptions" placeholder="Choose" @change="markNeedsRedraw" />
+              <span class="label">{{ t('imageMerge.fontFamily') }}</span>
+              <var-select
+                v-model="localFontFamily"
+                :options="fontOptions"
+                :placeholder="t('imageMerge.fontPlaceholder')"
+                @change="markNeedsRedraw"
+              />
             </div>
             <div class="control-item">
-              <span class="label">Font color</span>
+              <span class="label">{{ t('imageMerge.fontColor') }}</span>
               <div class="color-row">
                 <input class="color-input" type="color" v-model="localFontColor" @change="markNeedsRedraw" />
                 <span class="color-value">{{ localFontColor }}</span>
@@ -57,8 +62,8 @@
         </div>
       </div>
       <div class="control-actions">
-        <var-button type="primary" @click="drawCompositeImage">Regenerate</var-button>
-        <var-button type="success" @click="downloadCompositeImage">Download PNG</var-button>
+        <var-button type="primary" @click="drawCompositeImage">{{ t('imageMerge.regenerate') }}</var-button>
+        <var-button type="success" @click="downloadCompositeImage">{{ t('imageMerge.download') }}</var-button>
       </div>
     </var-card>
 
@@ -66,22 +71,22 @@
       <canvas ref="canvas" class="composite-canvas"></canvas>
     </div>
 
-    <var-card class="controls-card" title="Order & captions">
+    <var-card class="controls-card" :title="t('imageMerge.orderTitle')">
       <div class="data-list" ref="sortableRef">
         <div class="data-row" v-for="(img, index) in orderedImages" :key="img.url">
-          <span class="drag-handle">↕</span>
+          <span class="drag-handle" :title="t('imageMerge.dragHandle')" :aria-label="t('imageMerge.dragHandle')">::</span>
           <div class="file-name" :title="img.fileName">{{ img.fileName }}</div>
           <var-input
             class="caption-input"
             size="small"
             v-model="orderedImages[index]!.text"
-            placeholder="Enter caption"
+            :placeholder="t('imageMerge.captionPlaceholder')"
             @keyup.enter="focusNextInput(index)"
             @input="markNeedsRedraw"
             :ref="(el: any) => setInputRef(el, index)"
           />
           <div class="row-actions">
-            <var-button type="danger" size="small" text @click="removeImage(index)">Delete</var-button>
+            <var-button type="danger" size="small" text @click="removeImage(index)">{{ t('imageMerge.delete') }}</var-button>
           </div>
         </div>
       </div>
@@ -92,6 +97,7 @@
 <script lang="ts">
 import { defineComponent, ref, watch, onMounted, nextTick, onUnmounted, type PropType } from 'vue'
 import Sortable from 'sortablejs'
+import { useI18n } from 'vue-i18n'
 
 interface ImageData {
   url: string
@@ -109,6 +115,7 @@ export default defineComponent({
   },
   emits: ['updateCanvases'],
   setup(props, { emit }) {
+    const { t } = useI18n()
     const canvas = ref<HTMLCanvasElement | null>(null)
     const fullResCanvas = ref<HTMLCanvasElement | null>(null)
     const localSpacing = ref<number>(10)
@@ -242,7 +249,7 @@ export default defineComponent({
           const blob = await new Promise<Blob>((resolve, reject) => {
             fullCanvas.toBlob((b) => {
               if (b) resolve(b)
-              else reject(new Error('Failed to create blob'))
+              else reject(new Error(t('imageMerge.messages.blobFailed')))
             }, 'image/png', 1.0)
           })
 
@@ -254,7 +261,7 @@ export default defineComponent({
           emit('updateCanvases', { fullRes: objectUrl })
         }
       } catch (error) {
-        console.error('Failed to render preview canvas', error)
+        console.error(t('imageMerge.messages.previewFailed'), error)
       }
     }
 
@@ -298,7 +305,7 @@ export default defineComponent({
         }
         return canvasEl
       } catch (error) {
-        console.error('Failed to generate full resolution canvas', error)
+        console.error(t('imageMerge.messages.fullFailed'), error)
         return null
       }
     }
@@ -311,12 +318,12 @@ export default defineComponent({
           if (blob) {
             const link = document.createElement('a')
             link.href = URL.createObjectURL(blob)
-            link.download = 'composite_image.png'
+            link.download = t('imageMerge.downloadName')
             link.click()
           }
         })
       } catch (error) {
-        console.error('Failed to download image', error)
+        console.error(t('imageMerge.messages.downloadFailed'), error)
       }
     }
 
@@ -437,6 +444,7 @@ export default defineComponent({
       handleSpacingChange,
       handleFrameChange,
       removeImage,
+      t,
     }
   },
 })

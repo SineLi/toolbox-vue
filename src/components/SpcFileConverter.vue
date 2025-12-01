@@ -17,8 +17,8 @@
             >
               <div class="upload-text">
                 <var-icon name="cloud-upload" size="28" />
-                <div class="upload-title">Drag .spd files here</div>
-                <div class="upload-sub">or <em>click to choose</em></div>
+                <div class="upload-title">{{ t('spc.uploadTitle') }}</div>
+                <div class="upload-sub" v-html="t('spc.uploadSub')"></div>
               </div>
             </el-upload>
           </var-col>
@@ -26,12 +26,20 @@
           <var-col :span="24">
             <div class="setting-tools">
               <div class="tools-left">
-                <var-button type="primary" @click="downloadSelected" :disabled="!hasSelection">Download selected</var-button>
-                <var-button type="primary" @click="downloadAll" :disabled="!fileList.length">Download all</var-button>
+                <var-button type="primary" @click="downloadSelected" :disabled="!hasSelection">
+                  {{ t('spc.downloadSelected') }}
+                </var-button>
+                <var-button type="primary" @click="downloadAll" :disabled="!fileList.length">
+                  {{ t('spc.downloadAll') }}
+                </var-button>
               </div>
               <div class="tools-left">
-                <var-button type="warning" @click="deleteSelected" :disabled="!hasSelection">Remove selected</var-button>
-                <var-button type="danger" @click="deleteAll" :disabled="!fileList.length">Remove all</var-button>
+                <var-button type="warning" @click="deleteSelected" :disabled="!hasSelection">
+                  {{ t('spc.removeSelected') }}
+                </var-button>
+                <var-button type="danger" @click="deleteAll" :disabled="!fileList.length">
+                  {{ t('spc.removeAll') }}
+                </var-button>
               </div>
             </div>
           </var-col>
@@ -47,8 +55,10 @@
     <transition name="list-card" appear>
       <var-card v-if="hasFiles" class="file-list-card" ref="fileListCard">
         <div class="file-list-header">
-          <h3>Uploaded files</h3>
-          <div class="file-count" v-if="fileList.length">Total {{ fileList.length }}</div>
+          <h3>{{ t('spc.uploadedFiles') }}</h3>
+          <div class="file-count" v-if="fileList.length">
+            {{ t('spc.total', { count: fileList.length }) }}
+          </div>
         </div>
 
         <var-list class="file-list" :finished="true" finished-text="">
@@ -71,14 +81,16 @@
               </div>
 
               <template #extra>
-                <var-button text type="danger" size="small" @click="removeFile(String(file.uid))">Remove</var-button>
+                <var-button text type="danger" size="small" @click="removeFile(String(file.uid))">
+                  {{ t('spc.remove') }}
+                </var-button>
               </template>
             </var-cell>
           </template>
 
           <div v-else class="empty-state">
             <var-icon name="file-question-outline" size="36" />
-            <p>No files yet. Drag .spd files or click above.</p>
+            <p>{{ t('spc.empty') }}</p>
           </div>
         </var-list>
       </var-card>
@@ -87,19 +99,19 @@
 
   <var-dialog
     v-model:show="showSettings"
-    title="Settings"
+    :title="t('spc.settings')"
     :close-on-click-overlay="true"
     :cancel-button="false"
-    confirm-button-text="Confirm"
+    :confirm-button-text="t('common.confirm')"
     @confirm="onConfirmSettings"
   >
     <div class="settings-list">
-      <var-cell title="Zip download" description="When multi-select, zip files and download" border>
+      <var-cell :title="t('spc.zipDownload')" :description="t('spc.zipDesc')" border>
         <template #extra>
           <var-switch v-model="packDownload" />
         </template>
       </var-cell>
-      <var-cell title="Auto download" description="Parse and download immediately after upload" border>
+      <var-cell :title="t('spc.autoDownload')" :description="t('spc.autoDesc')" border>
         <template #extra>
           <var-switch v-model="autoDownload" />
         </template>
@@ -114,10 +126,12 @@ import { defineComponent, ref, computed, nextTick, watch } from 'vue'
 import type { UploadFile } from 'element-plus'
 import { Snackbar } from '@varlet/ui'
 import JSZip from 'jszip'
+import { useI18n } from 'vue-i18n'
 
 export default defineComponent({
   name: 'SpcFileConverter',
   setup() {
+    const { t } = useI18n()
     const fileList = ref<UploadFile[]>([])
     const selectedMap = ref<Record<string, boolean>>({})
     const autoDownload = ref(false)
@@ -154,7 +168,7 @@ export default defineComponent({
           const rec = await ensureCsvForFile(file)
           if (rec) triggerDownload(rec.url, rec.name, true)
         } catch (e: any) {
-          Snackbar.error(`Parse failed: ${file.name}\n${e?.message || e}`)
+          Snackbar.error(t('spc.messages.parseFailed', { name: file.name, message: e?.message || e }))
         }
       }
     }
@@ -288,7 +302,7 @@ export default defineComponent({
             if (first) triggerDownload(first.url, first.name, true)
           }
         } catch (e: any) {
-          Snackbar.error(`Zip failed\n${e?.message || e}`)
+          Snackbar.error(t('spc.messages.zipFailed', { message: e?.message || e }))
         }
         return
       }
@@ -299,7 +313,7 @@ export default defineComponent({
           const rec = await ensureCsvForFile(f)
           if (rec) triggerDownload(rec.url, rec.name, true)
         } catch (e: any) {
-          Snackbar.error(`Parse failed: ${f.name}\n${e?.message || e}`)
+          Snackbar.error(t('spc.messages.parseFailed', { name: f.name, message: e?.message || e }))
         }
       }
     }
@@ -319,7 +333,7 @@ export default defineComponent({
           }
           }
         } catch (e: any) {
-          Snackbar.error(`Zip failed\n${e?.message || e}`)
+          Snackbar.error(t('spc.messages.zipFailed', { message: e?.message || e }))
         }
         return
       }
@@ -328,7 +342,7 @@ export default defineComponent({
           const rec = await ensureCsvForFile(f)
           if (rec) triggerDownload(rec.url, rec.name, true)
         } catch (e: any) {
-          Snackbar.error(`Parse failed: ${f.name}\n${e?.message || e}`)
+          Snackbar.error(t('spc.messages.parseFailed', { name: f.name, message: e?.message || e }))
         }
       }
     }
@@ -355,13 +369,13 @@ export default defineComponent({
     }
 
     const parseSpdToCsv = async (file: UploadFile): Promise<{ url: string; name: string } | null> => {
-      if (!(file.raw instanceof Blob)) throw new Error('Missing raw file data')
+      if (!(file.raw instanceof Blob)) throw new Error(t('spc.messages.missingRaw'))
       const buf = await file.raw.arrayBuffer()
       const dv = new DataView(buf)
       const headerBytes: number[] = []
       for (let i = 0; i < 5 && i < dv.byteLength; i++) headerBytes.push(dv.getUint8(i))
       const header = String.fromCharCode(...headerBytes)
-      if (header !== 'UVWIN') throw new Error('Unexpected file type')
+      if (header !== 'UVWIN') throw new Error(t('spc.messages.unexpectedType'))
 
       const start = 1029
       const pairs: string[] = []
@@ -403,6 +417,7 @@ export default defineComponent({
       showSettings,
       onConfirmSettings,
       zipAndDownload,
+      t,
     }
   },
 })

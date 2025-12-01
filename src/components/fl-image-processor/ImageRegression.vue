@@ -1,10 +1,10 @@
 ﻿<template>
   <div class="image-regression">
-    <var-card class="controls-card" title="Sampling">
+    <var-card class="controls-card" :title="t('imageRegression.samplingTitle')">
       <template v-if="(props.fullRes && props.fullRes !== 'data:,') || uploadedImg">
         <div class="control-row">
           <div class="control-item" style="gap: 16px;">
-            <span class="label">Sample size</span>
+            <span class="label">{{ t('imageRegression.sampleSize') }}</span>
             <var-slider
               v-model="sampleSize"
               :min="1"
@@ -15,19 +15,19 @@
             />
           </div>
           <div class="control-item">
-            <span class="label">Random seed</span>
-            <var-input v-model="randomSeed" type="text" placeholder="Seed" />
+            <span class="label">{{ t('imageRegression.randomSeed') }}</span>
+            <var-input v-model="randomSeed" type="text" :placeholder="t('imageRegression.seedPlaceholder')" />
           </div>
         </div>
       </template>
       <template v-else>
-        <var-button type="primary" @click="uploadImage">Upload image</var-button>
+        <var-button type="primary" @click="uploadImage">{{ t('imageRegression.uploadImage') }}</var-button>
         <input ref="fileInput" type="file" @change="handleUpload" accept="image/*" style="display:none" />
       </template>
     </var-card>
 
     <div class="canvas-container">
-      <div v-if="isLoading" class="loading-mask">Loading...</div>
+      <div v-if="isLoading" class="loading-mask">{{ t('imageRegression.loading') }}</div>
       <canvas
         ref="visibleCanvas"
         @mousemove="handleMouseMove"
@@ -36,45 +36,58 @@
       ></canvas>
     </div>
 
-    <var-card class="controls-card" title="Sample list">
+    <var-card class="controls-card" :title="t('imageRegression.sampleListTitle')">
       <var-list>
-        <var-cell v-for="square in squares" :key="square.id" border :title="`Sample ${square.id}`">
+        <var-cell
+          v-for="square in squares"
+          :key="square.id"
+          border
+          :title="t('imageRegression.sampleLabel', { id: square.id })"
+        >
           <div class="sample-row">
             <var-input
               v-model="square.num"
               type="number"
-              placeholder="Number"
+              :placeholder="t('imageRegression.numberPlaceholder')"
               @keyup.enter="focusNextSample(square.id)"
               :ref="(el: any) => setSampleInputRef(el, square.id)"
             />
             <div class="sample-result">{{ square.result?.toFixed(4) || '-' }}</div>
-            <var-button type="danger" size="small" @click="removeSquare(square.id)">Remove</var-button>
+            <var-button type="danger" size="small" @click="removeSquare(square.id)">
+              {{ t('imageRegression.remove') }}
+            </var-button>
           </div>
         </var-cell>
       </var-list>
     </var-card>
 
-    <var-card class="controls-card" title="Regression">
+    <var-card class="controls-card" :title="t('imageRegression.regressionTitle')">
       <div class="control-row">
-        <var-input v-model="formula" placeholder="Formula (e.g. R/G)" />
-        <var-select v-model="plotType" :options="plotOptions" placeholder="Chart type" />
-        <var-select v-model="weightMethod" :options="weightOptions" placeholder="Weighting" :disabled="plotType === 'bar'" />
-        <var-button type="primary" @click="calculateFormula">Calculate</var-button>
-        <var-button type="success" @click="downloadSamples">Download CSV</var-button>
+        <var-input v-model="formula" :placeholder="t('imageRegression.formulaPlaceholder')" />
+        <var-select v-model="plotType" :options="plotOptions" :placeholder="t('imageRegression.chartType')" />
+        <var-select
+          v-model="weightMethod"
+          :options="weightOptions"
+          :placeholder="t('imageRegression.weighting')"
+          :disabled="plotType === 'bar'"
+        />
+        <var-button type="primary" @click="calculateFormula">{{ t('imageRegression.calculate') }}</var-button>
+        <var-button type="success" @click="downloadSamples">{{ t('imageRegression.download') }}</var-button>
       </div>
     </var-card>
 
-    <var-card class="controls-card" title="Chart">
+    <var-card class="controls-card" :title="t('imageRegression.chartTitle')">
       <div ref="chartRef" class="chart"></div>
     </var-card>
   </div>
 </template>
 
 <script  lang="ts">
-import { defineComponent, ref, watch, onUnmounted, onMounted, nextTick } from 'vue'
+import { defineComponent, ref, watch, onUnmounted, onMounted, nextTick, computed } from 'vue'
 import seedrandom from 'seedrandom'
 import * as echarts from 'echarts'
 import { useDark } from '@vueuse/core'
+import { useI18n } from 'vue-i18n'
 
 export default defineComponent({
   name: 'ImageRegression',
@@ -85,6 +98,7 @@ export default defineComponent({
     },
   },
   setup(props) {
+    const { t, locale } = useI18n()
     const visibleCanvas = ref<HTMLCanvasElement | null>(null)
     let offscreenCanvas: HTMLCanvasElement | null = null
     const sampleSize = ref<number>(20)
@@ -112,15 +126,15 @@ export default defineComponent({
     const weightMethod = ref<'none' | 'direct' | 'instrument'>('none')
     const plotType = ref<'scatter' | 'bar'>('scatter')
 
-    const plotOptions = [
-      { label: 'Scatter', value: 'scatter' },
-      { label: 'Bar', value: 'bar' },
-    ]
-    const weightOptions = [
-      { label: 'None', value: 'none' },
-      { label: 'Direct', value: 'direct' },
-      { label: 'Instrument', value: 'instrument' },
-    ]
+    const plotOptions = computed(() => [
+      { label: t('imageRegression.plotOptions.scatter'), value: 'scatter' },
+      { label: t('imageRegression.plotOptions.bar'), value: 'bar' },
+    ])
+    const weightOptions = computed(() => [
+      { label: t('imageRegression.weightOptions.none'), value: 'none' },
+      { label: t('imageRegression.weightOptions.direct'), value: 'direct' },
+      { label: t('imageRegression.weightOptions.instrument'), value: 'instrument' },
+    ])
     const chartRef = ref<HTMLElement | null>(null)
     let chartInstance: echarts.ECharts | null = null
     let resizeObserver: ResizeObserver | null = null
@@ -423,7 +437,7 @@ export default defineComponent({
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = 'sample_data.csv'
+      link.download = t('imageRegression.csvName')
       link.click()
       URL.revokeObjectURL(url)
     }
@@ -441,7 +455,7 @@ export default defineComponent({
 
     function createErrorBarSeries(data: Array<[number | string, number, number]>) {
       return {
-        name: 'Std dev',
+        name: t('imageRegression.chart.stdDev'),
         type: 'custom',
         renderItem: (_: any, api: any) => {
           const xValue = api.value(0)
@@ -475,7 +489,7 @@ export default defineComponent({
         data,
         z: 10,
         tooltip: {
-          formatter: (params: any) => `±${params.value?.[2] ?? 0}`,
+          formatter: (params: any) => t('imageRegression.chart.tooltipStd', { value: params.value?.[2] ?? 0 }),
         },
       } as echarts.SeriesOption
     }
@@ -501,9 +515,9 @@ export default defineComponent({
 
       if (!validData.length) {
         inst.setOption({
-          title: { text: 'No data', left: 'center' },
-          xAxis: { type: 'value', name: 'Number' },
-          yAxis: { type: 'value', name: 'Result' },
+          title: { text: t('imageRegression.chart.noData'), left: 'center' },
+          xAxis: { type: 'value', name: t('imageRegression.chart.numberAxis') },
+          yAxis: { type: 'value', name: t('imageRegression.chart.resultAxis') },
           series: [],
         })
         inst.resize()
@@ -514,7 +528,7 @@ export default defineComponent({
 
       if (plotType.value === 'scatter') {
         const scatterSeries: echarts.SeriesOption = {
-          name: 'Data points',
+          name: t('imageRegression.chart.dataPoints'),
           type: 'scatter',
           data: pairs.map((pair, idx) => ({
             value: pair,
@@ -542,7 +556,7 @@ export default defineComponent({
           const xMin = Math.min(...xVals)
           const xMax = Math.max(...xVals)
           series.push({
-            name: `Regression (R² = ${regression.rSquared.toFixed(4)})`,
+            name: t('imageRegression.chart.regression', { value: regression.rSquared.toFixed(4) }),
             type: 'line',
             symbol: 'none',
             data: [
@@ -554,7 +568,7 @@ export default defineComponent({
         }
       } else {
         series.push({
-          name: 'Values',
+          name: t('imageRegression.chart.values'),
           type: 'bar',
           data: yVals,
           itemStyle: { color: '#409EFF' },
@@ -570,7 +584,7 @@ export default defineComponent({
 
       const option: echarts.EChartsOption = {
         title: {
-          text: plotType.value === 'scatter' ? 'Linear regression' : 'Data distribution',
+          text: plotType.value === 'scatter' ? t('imageRegression.chart.linearRegression') : t('imageRegression.chart.dataDistribution'),
           left: 'center',
           top: 8,
         },
@@ -579,9 +593,9 @@ export default defineComponent({
         grid: { left: 60, right: 20, top: 70, bottom: 50 },
         xAxis:
           plotType.value === 'scatter'
-            ? { type: 'value', name: 'Number' }
-            : { type: 'category', name: 'Number', data: xVals.map((v) => String(v)) },
-        yAxis: { type: 'value', name: 'Result' },
+            ? { type: 'value', name: t('imageRegression.chart.numberAxis') }
+            : { type: 'category', name: t('imageRegression.chart.numberAxis'), data: xVals.map((v) => String(v)) },
+        yAxis: { type: 'value', name: t('imageRegression.chart.resultAxis') },
         series,
       }
 
@@ -614,6 +628,10 @@ export default defineComponent({
       },
       { flush: 'post' },
     )
+
+    watch(locale, () => {
+      updateChart()
+    })
 
     onUnmounted(() => {
       isLoading.value = true
@@ -657,6 +675,7 @@ export default defineComponent({
       handleSampleSizeChange,
       chartRef,
       downloadSamples,
+      t,
     }
   },
 })

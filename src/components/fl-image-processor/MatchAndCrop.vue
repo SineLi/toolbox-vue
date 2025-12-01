@@ -1,16 +1,16 @@
 ﻿<template>
   <div class="match-crop">
     <div class="panel-grid">
-      <var-card class="panel-card template-card" title="Template image">
+      <var-card class="panel-card template-card" :title="t('matchAndCrop.templateTitle')">
         <var-uploader accept="image/*" :multiple="false" @after-read="handleTemplateAfterRead" :readonly="false" :deletable="false">
-          <var-button type="primary" block>Upload template</var-button>
+          <var-button type="primary" block>{{ t('matchAndCrop.uploadTemplate') }}</var-button>
         </var-uploader>
         <div v-if="templateDataUrl" class="preview">
-          <img :src="templateDataUrl" alt="Template preview" class="template-img" />
+          <img :src="templateDataUrl" :alt="t('matchAndCrop.templatePreviewAlt')" class="template-img" />
         </div>
       </var-card>
 
-      <var-card class="panel-card process-card" title="Images to process">
+      <var-card class="panel-card process-card" :title="t('matchAndCrop.imagesTitle')">
         <div class="actions">
           <var-uploader
             accept="image/*"
@@ -19,10 +19,12 @@
             :readonly="false"
             :deletable="false"
           >
-            <var-button type="primary">Upload images</var-button>
+            <var-button type="primary">{{ t('matchAndCrop.uploadImages') }}</var-button>
           </var-uploader>
           <div class="progress-wrap" v-if="imageTasks.length">
-            <div class="progress-label">Processed {{ processedCount }}/{{ imageTasks.length }}</div>
+            <div class="progress-label">
+              {{ t('matchAndCrop.progressLabel', { done: processedCount, total: imageTasks.length }) }}
+            </div>
             <var-progress :value="progress" track-color="#e5e7eb" />
           </div>
         </div>
@@ -33,23 +35,29 @@
               <div class="task-row__content">
                 <div class="task-text">
                   <div class="task-title" :title="task.file.name">{{ task.file.name }}</div>
-                  <div class="task-meta">#{{ task.id + 1 }} · {{ formatSize(task.file.size) }}</div>
-                  <div class="task-status" v-if="task.processing">Processing...</div>
-                  <div class="task-status task-status--error" v-else-if="!task.showCroppedURL">Failed</div>
+                  <div class="task-meta">
+                    {{ t('matchAndCrop.taskMeta', { id: task.id + 1, size: formatSize(task.file.size) }) }}
+                  </div>
+                  <div class="task-status" v-if="task.processing">{{ t('matchAndCrop.statusProcessing') }}</div>
+                  <div class="task-status task-status--error" v-else-if="!task.showCroppedURL">
+                    {{ t('matchAndCrop.statusFailed') }}
+                  </div>
                 </div>
                 <div class="task-preview">
-                  <img v-if="task.showCroppedURL" :src="task.showCroppedURL" alt="Cropped" />
+                  <img v-if="task.showCroppedURL" :src="task.showCroppedURL" :alt="t('matchAndCrop.croppedAlt')" />
                   <div v-else class="task-preview__placeholder">
-                    <span>{{ task.processing ? 'Processing' : 'No preview' }}</span>
+                    <span>{{ task.processing ? t('matchAndCrop.placeholderProcessing') : t('matchAndCrop.placeholderEmpty') }}</span>
                   </div>
                 </div>
                 <div class="task-actions">
-                  <var-button type="danger" size="small" text @click="removeTask(task.id)">Delete</var-button>
+                  <var-button type="danger" size="small" text @click="removeTask(task.id)">
+                    {{ t('matchAndCrop.delete') }}
+                  </var-button>
                 </div>
               </div>
             </var-cell>
           </template>
-          <div v-else class="empty">Drop images to start processing.</div>
+          <div v-else class="empty">{{ t('matchAndCrop.empty') }}</div>
         </var-list>
       </var-card>
     </div>
@@ -60,6 +68,7 @@
 import { defineComponent, ref, reactive, computed, watch } from 'vue'
 import { Snackbar } from '@varlet/ui'
 import cv, { Mat } from '@techstark/opencv-js'
+import { useI18n } from 'vue-i18n'
 
 interface ImageTask {
   id: number
@@ -76,6 +85,7 @@ export default defineComponent({
   name: 'MatchAndCrop',
   emits: ['imageProcessed', 'processingStart', 'processingFinished', 'tasksUpdated'],
   setup(_, { emit }) {
+    const { t } = useI18n()
     const templateDataUrl = ref<string | null>(null)
     let templateCannyMat: cv.Mat | null = null
     let templateWidth = 0
@@ -119,7 +129,7 @@ export default defineComponent({
           resolve()
         }
         img.onerror = () => {
-          Snackbar.error('Failed to load template')
+          Snackbar.error(t('matchAndCrop.messages.loadTemplateFailed'))
           resolve()
         }
         img.src = dataUrl
@@ -173,7 +183,7 @@ export default defineComponent({
             processedDataUrl: null,
             processing: false,
           })
-          Snackbar.error('Image load failed')
+          Snackbar.error(t('matchAndCrop.messages.imageLoadFailed'))
           resolve()
         }
         img.src = originalDataUrl
@@ -182,7 +192,7 @@ export default defineComponent({
     function processSingleImage(task: ImageTask): Promise<void> {
       return new Promise((resolve) => {
         if (!templateCannyMat) {
-          Snackbar.error('Please upload a template image first')
+          Snackbar.error(t('matchAndCrop.messages.missingTemplate'))
           task.processing = false
           resolve()
           return
@@ -303,12 +313,13 @@ export default defineComponent({
             task.processing = false
           } catch (err) {
             console.error('Processing failed', err)
-            task.processing = false
-            task.showCroppedURL = null
-            task.processedDataUrl = null
-          }
-          resolve()
+          task.processing = false
+          task.showCroppedURL = null
+          task.processedDataUrl = null
+          Snackbar.error(t('matchAndCrop.messages.processingFailed'))
         }
+        resolve()
+      }
         inputImage.onerror = () => {
           task.processing = false
           task.showCroppedURL = null
@@ -342,7 +353,7 @@ export default defineComponent({
 
     watch(progress, (newVal) => {
       if (newVal === 100 && imageTasks.length > 0) {
-        Snackbar.success('All images processed')
+        Snackbar.success(t('matchAndCrop.messages.allDone'))
       }
     })
 
@@ -367,6 +378,7 @@ export default defineComponent({
       progress,
       processedCount,
       formatSize,
+      t,
     }
   },
 })
@@ -546,5 +558,4 @@ export default defineComponent({
   }
 }
 </style>
-
 

@@ -3,11 +3,14 @@ import { computed, ref, watch } from 'vue'
 import { StyleProvider, Themes } from '@varlet/ui'
 import { useDark, useToggle } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { getSavedLocale, saveLocale, type LocaleType } from '../i18n'
 
+const { t, locale } = useI18n()
 const isDark = useDark()
 const toggleDark = useToggle(isDark)
 const currentTheme = ref<'light' | 'dark'>('light')
-const currentLanguage = ref('zh')
+const currentLanguage = ref<LocaleType>((locale.value as LocaleType) || 'en')
 const languageMenu = ref()
 const route = useRoute()
 const router = useRouter()
@@ -15,9 +18,9 @@ const router = useRouter()
 const showBack = computed(() => route.name !== 'home')
 const appBarTitle = computed(() => {
   const name = route.name?.toString() ?? ''
-  if (name === 'spc-converter') return 'SPC File Converter'
-  if (name === 'fl-image-processor') return 'FL Image Processor'
-  return 'Toolbox'
+  if (name === 'spc-converter') return t('nav.spc')
+  if (name === 'fl-image-processor') return t('nav.fl')
+  return t('nav.home')
 })
 
 const goBack = () => {
@@ -121,10 +124,10 @@ const CAUTheme = {
 }
 
 const getCookie = (name: string): string | null => {
-  const match = document.cookie.match(
-    new RegExp('(?:^|; )' + name.replace(/([.*+?^${}()|[\]\\])/g, '\\$&') + '=([^;]*)'),
-  )
-  return match ? decodeURIComponent(match[1] ?? '') : null
+  const target = document.cookie.split('; ').find((part) => part.startsWith(`${name}=`))
+  if (!target) return null
+  const value = target.split('=')[1] ?? ''
+  return decodeURIComponent(value)
 }
 
 const setCookie = (name: string, value: string) => {
@@ -138,11 +141,9 @@ const applyTheme = (theme: 'light' | 'dark') => {
   toggleDark(theme === 'dark')
 }
 
-
-
 const initThemeAndLanguage = () => {
   const theme = getCookie('theme')
-  const language = getCookie('language')
+  const language = getSavedLocale()
 
   if (theme === 'dark') {
     applyTheme('dark')
@@ -150,9 +151,11 @@ const initThemeAndLanguage = () => {
     applyTheme('light')
   }
 
-  if (language) {
-    currentLanguage.value = language
-  }
+  const resolvedLang = language ?? (locale.value as LocaleType)
+  currentLanguage.value = resolvedLang
+  locale.value = resolvedLang
+  saveLocale(resolvedLang)
+  document.documentElement.setAttribute('lang', resolvedLang)
 }
 
 initThemeAndLanguage()
@@ -161,13 +164,16 @@ const toggleTheme = () => {
   applyTheme(currentTheme.value === 'light' ? 'dark' : 'light')
 }
 
-const languages = [
-  { label: '中文', value: 'zh' },
-  { label: 'English', value: 'en' },
-]
+const languages = computed(() => [
+  { label: t('language.zh'), value: 'zh' as LocaleType },
+  { label: t('language.en'), value: 'en' as LocaleType },
+])
 
-const switchLanguage = (lang: string) => {
+const switchLanguage = (lang: LocaleType) => {
   currentLanguage.value = lang
+  locale.value = lang
+  saveLocale(lang)
+  document.documentElement.setAttribute('lang', lang)
   languageMenu.value?.close()
 }
 
@@ -176,7 +182,9 @@ watch(currentTheme, (newTheme) => {
 })
 
 watch(currentLanguage, (newLanguage) => {
-  setCookie('language', newLanguage)
+  locale.value = newLanguage
+  saveLocale(newLanguage)
+  document.documentElement.setAttribute('lang', newLanguage)
 })
 </script>
 
@@ -185,7 +193,7 @@ watch(currentLanguage, (newLanguage) => {
     <var-app-bar class="app-bar" :title="appBarTitle">
       <template #left>
         <div class="app-bar-left">
-          <var-button v-if="showBack" text round @click="goBack" aria-label="返回">
+          <var-button v-if="showBack" text round @click="goBack" :aria-label="t('common.back')">
             <var-icon name="chevron-left" />
           </var-button>
           <div v-else class="back-placeholder" aria-hidden="true"></div>

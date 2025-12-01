@@ -1,25 +1,30 @@
 <script setup lang="ts">
-const tools = [
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
+const tools = computed(() => [
   {
-    name: 'SPC File Converter',
-    desc: 'Convert .spd spectral data to CSV with multi-file selection and batch downloads.',
+    name: t('home.tools.spc.name'),
+    desc: t('home.tools.spc.desc'),
     path: '/spc-converter',
   },
   {
-    name: 'FL Image Processor',
-    desc: 'Template match and crop images, merge them, and run quick color regression.',
+    name: t('home.tools.fl.name'),
+    desc: t('home.tools.fl.desc'),
     path: '/fl-image-processor',
   },
-]
+])
 </script>
 
 <template>
   <div class="page">
     <header class="page__header">
       <div>
-        <p class="eyebrow">Tools</p>
-        <h1>Choose a utility</h1>
-        <p class="lead">Click a card to open a focused tool in this workspace.</p>
+        <p class="eyebrow">{{ t('home.eyebrow') }}</p>
+        <h1>{{ t('home.title') }}</h1>
+        <p class="lead">{{ t('home.lead') }}</p>
       </div>
     </header>
 
@@ -31,7 +36,7 @@ const tools = [
             <p class="tool-card__desc">{{ tool.desc }}</p>
           </div>
           <div class="tool-card__footer">
-            <span>Open</span>
+            <span>{{ t('home.open') }}</span>
             <var-icon name="chevron-right" size="18" />
           </div>
         </var-card>
