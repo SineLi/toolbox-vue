@@ -1,10 +1,11 @@
 ﻿<script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, provide, ref, watch } from 'vue'
 import { StyleProvider, Themes } from '@varlet/ui'
 import { useDark, useToggle } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { getSavedLocale, saveLocale, type LocaleType } from '../i18n'
+import ToolDocDrawer from './ToolDocDrawer.vue'
 
 const { t, locale } = useI18n()
 const isDark = useDark()
@@ -14,6 +15,7 @@ const currentLanguage = ref<LocaleType>((locale.value as LocaleType) || 'en')
 const languageMenu = ref()
 const route = useRoute()
 const router = useRouter()
+const docDrawer = ref<InstanceType<typeof ToolDocDrawer> | null>(null)
 
 const showBack = computed(() => route.name !== 'home')
 const appBarTitle = computed(() => {
@@ -23,6 +25,26 @@ const appBarTitle = computed(() => {
   if (name === 'info-center') return t('nav.info')
   return t('nav.home')
 })
+
+const currentToolKey = computed(() => {
+  const name = route.name?.toString() ?? ''
+  if (name === 'spc-converter') return 'spc'
+  if (name === 'fl-image-processor') return 'fl'
+  return ''
+})
+
+const currentToolTitle = computed(() => {
+  if (currentToolKey.value === 'spc') return t('nav.spc')
+  if (currentToolKey.value === 'fl') return t('nav.fl')
+  return ''
+})
+
+const openDocs = () => {
+  if (!currentToolKey.value) return
+  docDrawer.value?.open()
+}
+
+provide('openDocs', openDocs)
 
 const goBack = () => {
   if (window.history.length > 1) {
@@ -80,6 +102,7 @@ const CAUTheme = {
     '--color-outline': 'hsla(var(--hsl-outline), 1)',
     '--hsl-inverse-surface': '120, 3%, 19%',
     '--color-inverse-surface': 'hsla(var(--hsl-inverse-surface), 1)',
+    '--fab-trigger-size': '48px'
   },
   dark: {
     ...Themes.dark,
@@ -125,6 +148,7 @@ const CAUTheme = {
     '--color-outline': 'hsla(var(--hsl-outline), 1)',
     '--hsl-inverse-surface': '70, 10%, 88%',
     '--color-inverse-surface': 'hsla(var(--hsl-inverse-surface), 1)',
+    '--fab-trigger-size': '48px'
   },
 }
 
@@ -229,6 +253,12 @@ watch(currentLanguage, (newLanguage) => {
         <slot />
       </div>
     </main>
+    <ToolDocDrawer
+      v-if="currentToolKey"
+      ref="docDrawer"
+      :tool-key="currentToolKey"
+      :tool-title="currentToolTitle"
+    />
   </div>
 </template>
 

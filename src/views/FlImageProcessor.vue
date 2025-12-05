@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onUnmounted, ref, watch ,inject} from 'vue'
 import { useI18n } from 'vue-i18n'
 import MatchAndCrop from '../components/fl-image-processor/MatchAndCrop.vue'
 import ImageMerge from '../components/fl-image-processor/ImageMerge.vue'
@@ -54,6 +54,11 @@ const updateProcessedImages = (imageTasks: any[]) => {
     fullRes.value = ''
   }
 }
+  const openDocs = inject<() => void>('openDocs')
+
+  const fabClick = () => {
+    if (openDocs) openDocs()
+  }
 
 watch(
   step,
@@ -222,6 +227,7 @@ const md3Primary = 'var(--color-primary, #2563eb)'
         </var-button>
       </div>
     </div>
+  <var-fab type="default" :drag="true" inactive-icon="help-circle-outline" @click="fabClick" />
   </div>
 </template>
 
@@ -267,7 +273,6 @@ const md3Primary = 'var(--color-primary, #2563eb)'
 
 .step-meta__desc {
   font-size: 12px;
-  /* color: var(--color-on-surface-variant, #4b5563); */
   line-height: 1.5;
 }
 
@@ -280,9 +285,7 @@ const md3Primary = 'var(--color-primary, #2563eb)'
 .welcome-card {
   display: flex;
   flex-direction: column;
-  /* gap: 10px; */
   --card-border-radius: 20px;
-  /* --card-background: var(--color-surface, #fff); */
   cursor: pointer;
 }
 
@@ -334,13 +337,6 @@ const md3Primary = 'var(--color-primary, #2563eb)'
   font-weight: 600;
   color: var(--color-primary, #2563eb);
 }
-
-/* .panel {
-  background: var(--color-surface, #fff);
-  border-radius: 18px;
-  padding: 12px;
-  box-shadow: 0 14px 32px color-mix(in srgb, currentColor 10%, transparent);
-} */
 
 .nav-bar {
   position: sticky;
