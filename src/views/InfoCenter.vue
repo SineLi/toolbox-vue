@@ -21,6 +21,7 @@ const { t } = useI18n()
 const md = new MarkdownIt({
   linkify: true,
   breaks: true,
+  html: true
 })
 
 const rawModules = import.meta.glob('../logs/**/*.md', { as: 'raw', eager: true }) as Record<string, string>
@@ -52,10 +53,10 @@ const selectedId = ref<string>(files[0]?.id || '')
 const currentFile = computed(() => files.find((f) => f.id === selectedId.value))
 const currentHtml = computed(() => (currentFile.value ? md.render(currentFile.value.content) : ''))
 
-// If no selection but files exist, pick the first
-if (!selectedId.value && files.length > 0) {
-  selectedId.value = files[0].id
-}
+ // If no selection but files exist, pick the first
+ if (!selectedId.value && files.length > 0) {
+   selectedId.value = files[0]!.id
+ }
 </script>
 
 <style scoped>
@@ -68,7 +69,7 @@ if (!selectedId.value && files.length > 0) {
 }
 
 .markdown {
-  padding: 8px 2px;
+  padding: 16px;
 }
 
 .markdown :global(h1),

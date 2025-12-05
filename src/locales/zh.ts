@@ -7,7 +7,7 @@
     home: '工具箱',
     spc: 'SPC 文件转换',
     fl: 'FL 图像处理',
-    info: '信息 / 日志',
+    info: '关于',
   },
   common: {
     back: '返回',
@@ -181,15 +181,6 @@
       tooltipStd: '±{value}',
     },
     csvName: 'sample_data.csv',
-  },
-  info: {
-    title: '信息 / 日志',
-    subtitle: '工作区笔记',
-    lead: '将 Markdown 文件放入 src/logs/ 即可自动显示。',
-    refresh: '刷新',
-    empty: 'src/logs 中未找到 Markdown 文件',
-    noSelection: '请选择文件',
-    noContent: '暂无内容。',
   },
 }
 
