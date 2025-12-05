@@ -7,6 +7,7 @@
     home: '工具箱',
     spc: 'SPC 文件转换',
     fl: 'FL 图像处理',
+    info: '关于',
   },
   common: {
     back: '返回',

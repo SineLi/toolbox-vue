@@ -7,6 +7,7 @@ const en = {
     home: 'Toolbox',
     spc: 'SPC File Converter',
     fl: 'FL Image Processor',
+    info: 'About',
   },
   common: {
     back: 'Back',
@@ -181,6 +182,7 @@ const en = {
     },
     csvName: 'sample_data.csv',
   },
+
 }
 
 export default en
