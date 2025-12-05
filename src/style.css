@@ -33,7 +33,7 @@ a {
 }
 
 .app-body {
-  padding: 72px 0 0; /* offset for fixed app bar */
+  padding: var(--app-bar-height, 64px) 0 0; /* offset for fixed app bar */
 }
 
 .page {

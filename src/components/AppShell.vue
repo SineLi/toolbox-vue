@@ -233,24 +233,40 @@ watch(currentLanguage, (newLanguage) => {
 </template>
 
 <style scoped>
+:global(:root) {
+  --app-bar-height: 64px;
+  --app-bar-z-index: 1300;
+}
+
 .app-shell {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   background: var(--color-body, #f7f8fb);
+  position: relative;
 }
 
 .app-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 40;
+  height: var(--app-bar-height);
+  display: flex;
+  align-items: center;
   background: var(--color-primary-container, var(--color-primary, #2563eb));
   color: var(--color-on-primary-container, var(--color-on-primary, #ffffff));
   box-shadow: 0 8px 24px color-mix(in srgb, var(--color-primary, #2563eb) 16%, transparent);
   border-bottom: 1px solid color-mix(in srgb, currentColor 14%, transparent);
   backdrop-filter: blur(12px);
+}
+
+:global(.var-app-bar.app-bar) {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--app-bar-z-index) !important;
+}
+
+:global(.var-app-bar__content) {
+  z-index: inherit;
 }
 
 .app-bar-left {
@@ -267,12 +283,14 @@ watch(currentLanguage, (newLanguage) => {
 
 .app-body {
   flex: 1;
-  padding-top: 60px;
+  padding-top: var(--app-bar-height);
+  position: relative;
 }
 
 .app-content {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 18px 48px;
+  padding: 48px 24px;
+  position: relative;
 }
 </style>
