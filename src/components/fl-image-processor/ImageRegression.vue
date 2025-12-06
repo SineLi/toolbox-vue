@@ -62,7 +62,7 @@
     </var-card>
 
     <var-card class="controls-card regression-card" :title="t('imageRegression.regressionTitle')">
-      <div class="control-row regression-row">
+      <div class="control-row regression-row" v-if="(props.fullRes && props.fullRes !== 'data:,') || uploadedImg">
         <var-input
           v-model="formula"
           :placeholder="t('imageRegression.formulaPlaceholder')"
