@@ -19,6 +19,7 @@ const html = ref('')
 const md = new MarkdownIt({
   linkify: true,
   breaks: true,
+  html: true,
 })
 
 const rawDocs = import.meta.glob('../docs/tools/**/usage.*.md', { as: 'raw' }) as Record<
@@ -95,6 +96,7 @@ defineExpose({ open, close })
     position="bottom"
     overlay
     teleport="body"
+    :style="{ borderRadius: '18px 18px 0 0' }"
     :class="['tool-doc-drawer', { 'tool-doc-drawer--open': show }]"
   >
     <div class="drawer">
@@ -128,12 +130,13 @@ defineExpose({ open, close })
 <style scoped>
 .tool-doc-drawer {
   --drawer-max-width: min(960px, 96vw);
+  border-radius: 18px;
 }
 
 .drawer {
-  width: var(--drawer-max-width);
+  /* width: var(--drawer-max-width); */
   max-height: 78vh;
-  background: var(--color-surface, #ffffff);
+  /* background: var(--color-surface, #ffffff); */
   border-radius: 18px 18px 0 0;
   box-shadow: 0 -10px 32px color-mix(in srgb, currentColor 16%, transparent);
   padding: 18px 18px 12px;
@@ -211,7 +214,6 @@ defineExpose({ open, close })
 @media (max-width: 640px) {
   .drawer {
     width: 100%;
-    border-radius: 14px 14px 0 0;
   }
 }
 </style>
