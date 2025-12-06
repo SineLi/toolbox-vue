@@ -61,9 +61,13 @@
       </var-list>
     </var-card>
 
-    <var-card class="controls-card" :title="t('imageRegression.regressionTitle')">
-      <div class="control-row">
-        <var-input v-model="formula" :placeholder="t('imageRegression.formulaPlaceholder')" />
+    <var-card class="controls-card regression-card" :title="t('imageRegression.regressionTitle')">
+      <div class="control-row regression-row">
+        <var-input
+          v-model="formula"
+          :placeholder="t('imageRegression.formulaPlaceholder')"
+          class="formula-input"
+        />
         <var-select v-model="plotType" :options="plotOptions" :placeholder="t('imageRegression.chartType')" />
         <var-select
           v-model="weightMethod"
@@ -71,8 +75,10 @@
           :placeholder="t('imageRegression.weighting')"
           :disabled="plotType === 'bar'"
         />
-        <var-button type="primary" @click="calculateFormula">{{ t('imageRegression.calculate') }}</var-button>
-        <var-button type="success" @click="downloadSamples">{{ t('imageRegression.download') }}</var-button>
+        <div class="regression-actions">
+          <var-button type="primary" @click="calculateFormula">{{ t('imageRegression.calculate') }}</var-button>
+          <var-button type="success" @click="downloadSamples">{{ t('imageRegression.download') }}</var-button>
+        </div>
       </div>
     </var-card>
 
@@ -698,6 +704,23 @@ export default defineComponent({
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
   align-items: center;
+}
+.regression-row {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  align-items: center;
+}
+.regression-card :deep(.var-input__placeholder) {
+  color: color-mix(in srgb, currentColor 46%, transparent);
+  opacity: 1;
+}
+.regression-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.formula-input {
+  min-width: 240px;
 }
 
 .control-item {
