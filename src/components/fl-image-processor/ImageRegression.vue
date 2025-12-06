@@ -69,7 +69,10 @@
         <var-input
           v-model="formula"
           :placeholder="t('imageRegression.formulaPlaceholder')"
+          :rules="formulaRules"
+          ref="formulaInputRef"
           class="formula-input"
+          @change="isFormulaValid"
         />
         <var-select v-model="plotType" :options="plotOptions" :placeholder="t('imageRegression.chartType')" />
         <var-select
@@ -150,6 +153,7 @@ export default defineComponent({
     const isDark = useDark()
     let currentChartTheme: 'light' | 'dark' = isDark.value ? 'dark' : 'light'
     const sampleInputRefs = ref<Record<number, HTMLElement | null>>({})
+    const formulaInputRef = ref<any>(null)
     const clamp = (val: number, min: number, max: number) => Math.min(max, Math.max(min, val))
     const handleSampleSizeChange = (val: number | number[]) => {
       const raw = Array.isArray(val) ? val[0] : val
@@ -157,6 +161,30 @@ export default defineComponent({
       sampleSize.value = next
       squares.value = squares.value.map((sq) => ({ ...sq, size: next }))
       redrawCanvas()
+    }
+
+    const formulaRules = [
+      (val: string) => !!val?.trim() || t('imageRegression.messages.formulaRequired'),
+      (val: string) => {
+        const expr = (val || '').trim()
+        if (!expr) return true
+        try {
+          // eslint-disable-next-line no-new-func
+          new Function('R', 'G', 'B', `return ${expr}`)
+          return true
+        } catch (error) {
+          console.error('Invalid formula', error)
+          return t('imageRegression.messages.formulaInvalid')
+        }
+      },
+    ]
+
+    const isFormulaValid = async () => {
+      if (formulaInputRef.value?.validate) {
+        const passed = await formulaInputRef.value.validate()
+        if (passed === false) return false
+      }
+      return formulaRules.every((rule) => rule(formula.value) === true)
     }
 
     watch(
@@ -302,7 +330,9 @@ export default defineComponent({
       })
     }
 
-    function calculateFormula() {
+    async function calculateFormula() {
+      const valid = await isFormulaValid()
+      if (!valid) return
       if (!offscreenCanvas || !currentImg.value) return
       const ctx = offscreenCanvas.getContext('2d')
       if (!ctx) return
@@ -676,6 +706,7 @@ export default defineComponent({
       focusNextSample,
       isLoading,
       formula,
+      formulaInputRef,
       calculateFormula,
       weightMethod,
       plotType,
@@ -685,6 +716,8 @@ export default defineComponent({
       chartRef,
       downloadSamples,
       t,
+      formulaRules,
+      isFormulaValid,
     }
   },
 })

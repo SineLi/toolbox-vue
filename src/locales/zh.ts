@@ -183,6 +183,10 @@
       tooltipStd: '±{value}',
     },
     csvName: 'sample_data.csv',
+    messages: {
+      formulaRequired: '请输入公式（例如 R/G）',
+      formulaInvalid: '公式不合法，请检查语法',
+    },
   },
   docs: {
     usageEntry: '使用说明',
