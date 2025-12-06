@@ -206,11 +206,11 @@ const md3Primary = 'var(--color-primary, #2563eb)'
       />
     </section>
 
-    <section v-show="step === 1" class="panel">
+    <section v-if="step === 1" class="panel">
       <ImageMerge ref="imageMergeRef" :images="processedImages" @updateCanvases="handleUpdateCanvases" />
     </section>
 
-    <section v-show="step === 2" class="panel">
+    <section v-if="step === 2" class="panel">
       <ImageRegression :fullRes="fullRes" />
     </section>
 

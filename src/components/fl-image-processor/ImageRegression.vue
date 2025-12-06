@@ -27,7 +27,10 @@
     </var-card>
 
     <div class="canvas-container">
-      <div v-if="isLoading" class="loading-mask">{{ t('imageRegression.loading') }}</div>
+      <div v-if="isLoading" class="loading-mask">
+        <var-loading type="wave" />
+        <!-- {{ t('imageRegression.loading') }} -->
+      </div>
       <canvas
         ref="visibleCanvas"
         @mousemove="handleMouseMove"
@@ -61,9 +64,16 @@
       </var-list>
     </var-card>
 
-    <var-card class="controls-card" :title="t('imageRegression.regressionTitle')">
-      <div class="control-row">
-        <var-input v-model="formula" :placeholder="t('imageRegression.formulaPlaceholder')" />
+    <var-card class="controls-card regression-card" :title="t('imageRegression.regressionTitle')">
+      <div class="control-row regression-row" v-if="(props.fullRes && props.fullRes !== 'data:,') || uploadedImg">
+        <var-input
+          v-model="formula"
+          :placeholder="t('imageRegression.formulaPlaceholder')"
+          :rules="formulaRules"
+          ref="formulaInputRef"
+          class="formula-input"
+          @change="isFormulaValid"
+        />
         <var-select v-model="plotType" :options="plotOptions" :placeholder="t('imageRegression.chartType')" />
         <var-select
           v-model="weightMethod"
@@ -71,8 +81,10 @@
           :placeholder="t('imageRegression.weighting')"
           :disabled="plotType === 'bar'"
         />
-        <var-button type="primary" @click="calculateFormula">{{ t('imageRegression.calculate') }}</var-button>
-        <var-button type="success" @click="downloadSamples">{{ t('imageRegression.download') }}</var-button>
+        <div class="regression-actions">
+          <var-button type="primary" @click="calculateFormula">{{ t('imageRegression.calculate') }}</var-button>
+          <var-button type="success" @click="downloadSamples">{{ t('imageRegression.download') }}</var-button>
+        </div>
       </div>
     </var-card>
 
@@ -141,6 +153,7 @@ export default defineComponent({
     const isDark = useDark()
     let currentChartTheme: 'light' | 'dark' = isDark.value ? 'dark' : 'light'
     const sampleInputRefs = ref<Record<number, HTMLElement | null>>({})
+    const formulaInputRef = ref<any>(null)
     const clamp = (val: number, min: number, max: number) => Math.min(max, Math.max(min, val))
     const handleSampleSizeChange = (val: number | number[]) => {
       const raw = Array.isArray(val) ? val[0] : val
@@ -148,6 +161,30 @@ export default defineComponent({
       sampleSize.value = next
       squares.value = squares.value.map((sq) => ({ ...sq, size: next }))
       redrawCanvas()
+    }
+
+    const formulaRules = [
+      (val: string) => !!val?.trim() || t('imageRegression.messages.formulaRequired'),
+      (val: string) => {
+        const expr = (val || '').trim()
+        if (!expr) return true
+        try {
+          // eslint-disable-next-line no-new-func
+          new Function('R', 'G', 'B', `return ${expr}`)
+          return true
+        } catch (error) {
+          console.error('Invalid formula', error)
+          return t('imageRegression.messages.formulaInvalid')
+        }
+      },
+    ]
+
+    const isFormulaValid = async () => {
+      if (formulaInputRef.value?.validate) {
+        const passed = await formulaInputRef.value.validate()
+        if (passed === false) return false
+      }
+      return formulaRules.every((rule) => rule(formula.value) === true)
     }
 
     watch(
@@ -293,7 +330,9 @@ export default defineComponent({
       })
     }
 
-    function calculateFormula() {
+    async function calculateFormula() {
+      const valid = await isFormulaValid()
+      if (!valid) return
       if (!offscreenCanvas || !currentImg.value) return
       const ctx = offscreenCanvas.getContext('2d')
       if (!ctx) return
@@ -667,6 +706,7 @@ export default defineComponent({
       focusNextSample,
       isLoading,
       formula,
+      formulaInputRef,
       calculateFormula,
       weightMethod,
       plotType,
@@ -676,6 +716,8 @@ export default defineComponent({
       chartRef,
       downloadSamples,
       t,
+      formulaRules,
+      isFormulaValid,
     }
   },
 })
@@ -698,6 +740,23 @@ export default defineComponent({
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
   align-items: center;
+}
+.regression-row {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  align-items: center;
+}
+.regression-card :deep(.var-input__placeholder) {
+  color: color-mix(in srgb, currentColor 46%, transparent);
+  opacity: 1;
+}
+.regression-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.formula-input {
+  min-width: 240px;
 }
 
 .control-item {

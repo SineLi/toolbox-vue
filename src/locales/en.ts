@@ -183,6 +183,10 @@ const en = {
       tooltipStd: '±{value}',
     },
     csvName: 'sample_data.csv',
+    messages: {
+      formulaRequired: 'Please enter a formula (e.g. R/G)',
+      formulaInvalid: 'Formula is invalid, please check the syntax',
+    },
   },
   docs: {
     usageEntry: 'Usage guide',
