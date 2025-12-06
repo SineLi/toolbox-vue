@@ -20,6 +20,8 @@ const en = {
     remove: 'Remove',
     settings: 'Settings',
     confirm: 'Confirm',
+    usageGuide: 'Usage guide',
+    help: 'Help',
   },
   home: {
     eyebrow: 'Tools',
@@ -181,6 +183,14 @@ const en = {
       tooltipStd: '±{value}',
     },
     csvName: 'sample_data.csv',
+  },
+  docs: {
+    usageEntry: 'Usage guide',
+    dialogTitle: '{tool} · usage',
+    loading: 'Loading guide...',
+    missing: 'Guide not available yet.',
+    fallback: 'Showing default language.',
+    retry: 'Retry',
   },
 
 }
