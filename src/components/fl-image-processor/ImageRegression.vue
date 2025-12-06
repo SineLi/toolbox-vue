@@ -27,7 +27,10 @@
     </var-card>
 
     <div class="canvas-container">
-      <div v-if="isLoading" class="loading-mask">{{ t('imageRegression.loading') }}</div>
+      <div v-if="isLoading" class="loading-mask">
+        <var-loading type="wave" />
+        <!-- {{ t('imageRegression.loading') }} -->
+      </div>
       <canvas
         ref="visibleCanvas"
         @mousemove="handleMouseMove"
