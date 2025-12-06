@@ -264,7 +264,6 @@ watch(currentLanguage, (newLanguage) => {
 
 <style scoped>
 :global(:root) {
-  --app-bar-height: 64px;
   --app-bar-z-index: 1300;
 }
 
