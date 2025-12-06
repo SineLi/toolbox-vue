@@ -20,6 +20,8 @@
     remove: '移除',
     settings: '设置',
     confirm: '确定',
+    usageGuide: '使用说明',
+    help: '帮助',
   },
   home: {
     eyebrow: '工具集合',
@@ -181,6 +183,14 @@
       tooltipStd: '±{value}',
     },
     csvName: 'sample_data.csv',
+  },
+  docs: {
+    usageEntry: '使用说明',
+    dialogTitle: '{tool}',
+    loading: '正在加载说明...',
+    missing: '当前语言暂无说明。',
+    fallback: '显示默认语言内容。',
+    retry: '重试',
   },
 }
 

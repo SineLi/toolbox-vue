@@ -119,10 +119,11 @@
     </div>
   </var-dialog>
   <var-snackbar :show="false"></var-snackbar>
+  <var-fab type="default" :drag="true" inactive-icon="help-circle-outline" @click="fabClick" />
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, nextTick, watch } from 'vue'
+import { defineComponent, ref, computed, nextTick, watch ,inject} from 'vue'
 import type { UploadFile } from 'element-plus'
 import { Snackbar } from '@varlet/ui'
 import JSZip from 'jszip'
@@ -160,7 +161,11 @@ export default defineComponent({
       }
     }
     initFromCookie()
+    const openDocs = inject<() => void>('openDocs')
 
+    const fabClick = () => {
+      if (openDocs) openDocs()
+    }
     const handleChange = async (file: UploadFile, fileListValue: UploadFile[]) => {
       fileList.value = fileListValue
       if (autoDownload.value) {
@@ -396,6 +401,7 @@ export default defineComponent({
 
     return {
       fileList,
+      fabClick,
       handleChange,
       removeFile,
       formatFileSize,
