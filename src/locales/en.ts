@@ -78,7 +78,7 @@ const en = {
         desc: 'Sample points and run quick regression on the merged image.',
       },
     },
-    stepLabel: 'Step {num} · {title}',
+      stepLabel: '{title}',
     welcome: {
       recommended: 'Recommended',
       startMatch: 'Start with match & crop',
@@ -190,7 +190,7 @@ const en = {
   },
   docs: {
     usageEntry: 'Usage guide',
-    dialogTitle: '{tool} · usage',
+    dialogTitle: '{tool}',
     loading: 'Loading guide...',
     missing: 'Guide not available yet.',
     fallback: 'Showing default language.',
