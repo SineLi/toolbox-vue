@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onUnmounted, ref, watch ,inject} from 'vue'
+import { computed, nextTick, onUnmounted, ref, watch, inject, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import MatchAndCrop from '../components/fl-image-processor/MatchAndCrop.vue'
 import ImageMerge from '../components/fl-image-processor/ImageMerge.vue'
@@ -28,6 +28,7 @@ const maxStep = computed(() => steps.value.length - 1)
 const stepHistory = ref<number[]>([])
 const isNavigatingBack = ref(false)
 const imageMergeRef = ref<InstanceType<typeof ImageMerge> | null>(null)
+const openCVLoading = ref(false)
 
 const hasCroppedImages = computed(() => processedImages.value.length > 0)
 const canGoNext = computed(() => {
@@ -37,6 +38,40 @@ const canGoNext = computed(() => {
   return true
 })
 const hasBackHistory = computed(() => stepHistory.value.length > 0)
+
+// 延迟加载 OpenCV.js
+const loadOpenCV = async () => {
+  if (openCVLoading.value || (window as any).cv) {
+    return
+  }
+  
+  openCVLoading.value = true
+  try {
+    const script = document.createElement('script')
+    script.src = 'https://docs.opencv.org/4.6.0/opencv.js'
+    script.async = true
+    
+    return new Promise<void>((resolve, reject) => {
+      script.onload = () => {
+        openCVLoading.value = false
+        resolve()
+      }
+      script.onerror = () => {
+        openCVLoading.value = false
+        reject(new Error('Failed to load OpenCV.js'))
+      }
+      document.head.appendChild(script)
+    })
+  } catch (error) {
+    openCVLoading.value = false
+    console.error('Error loading OpenCV.js:', error)
+  }
+}
+
+// 页面挂载时开始加载 OpenCV
+onMounted(() => {
+  loadOpenCV()
+})
 
 const updateProcessedImages = (imageTasks: any[]) => {
   const existingTexts = new Map(processedImages.value.map((img) => [img.url, img.text || '']))
@@ -54,11 +89,12 @@ const updateProcessedImages = (imageTasks: any[]) => {
     fullRes.value = ''
   }
 }
-  const openDocs = inject<() => void>('openDocs')
 
-  const fabClick = () => {
-    if (openDocs) openDocs()
-  }
+const openDocs = inject<() => void>('openDocs')
+
+const fabClick = () => {
+  if (openDocs) openDocs()
+}
 
 watch(
   step,
@@ -142,7 +178,10 @@ const md3Primary = 'var(--color-primary, #2563eb)'
 </script>
 
 <template>
-  <div class="tool-page">
+  <div v-show="openCVLoading" class="tool-page" style="min-height: calc(100vh - 64px); display: flex; align-items: center; justify-content: center;">
+    <var-loading type="wave" :description="t('flPage.loadingText')" />
+  </div>
+  <div class="tool-page" v-show="!openCVLoading">
     <var-card class="steps-card">
       <var-steps
         class="steps-bar"

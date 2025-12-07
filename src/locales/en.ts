@@ -64,6 +64,7 @@ const en = {
     },
   },
   flPage: {
+    loadingText:'Loading library',
     steps: {
       match: {
         title: 'Match & crop',
