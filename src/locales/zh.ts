@@ -5,8 +5,8 @@
   },
   nav: {
     home: '工具箱',
-    spc: 'SPC 文件转换',
-    fl: 'FL 图像处理',
+    spc: 'SPC 文件转换器',
+    fl: '可视化处理工具',
     info: '关于',
   },
   common: {
@@ -24,7 +24,7 @@
     help: '帮助',
   },
   home: {
-    eyebrow: '工具集合',
+    eyebrow: '工具箱',
     title: '选择一个工具',
     lead: '点击卡片打开对应的工具。',
     tools: {
@@ -33,8 +33,8 @@
         desc: '将 .spd 光谱数据批量转换为 CSV，支持多选与打包下载。',
       },
       fl: {
-        name: 'FL 图像处理',
-        desc: '模板匹配并裁切图片、合并拼接、快速做颜色回归分析。',
+        name: '可视化处理工具',
+        desc: '可视化分析全流程处理，包含图片拼接和颜色识别。',
       },
     },
     open: '打开',
@@ -67,18 +67,18 @@
     steps: {
       match: {
         title: '匹配裁切',
-        desc: '使用模板图批量匹配并裁切待处理图像。',
+        desc: '使用模板图批量匹配并裁切待处理图像',
       },
       order: {
         title: '排序标注',
-        desc: '重新排序裁切图、添加说明并生成拼接条。',
+        desc: '将裁切后图片合并为大图',
       },
       analyze: {
         title: '颜色分析',
-        desc: '对拼接图采样并快速回归分析。',
+        desc: '对样品图像进行颜色识别并回归分析',
       },
     },
-    stepLabel: '步骤 {num} · {title}',
+    stepLabel: '{title}',
     welcome: {
       recommended: '推荐',
       startMatch: '从匹配裁切开始',
@@ -86,8 +86,8 @@
       openMatch: '进入匹配裁切',
       haveMerged: '已有拼接图',
       goAnalyze: '直接去分析',
-      skipDesc: '跳过裁切，直接对拼接条进行采样与回归。',
-      openRegression: '进入回归',
+      skipDesc: '直接进行样品图像颜色分析。',
+      openRegression: '进入分析',
     },
     nav: {
       back: '返回',
@@ -109,7 +109,7 @@
     placeholderEmpty: '暂无预览',
     delete: '删除',
     croppedAlt: '裁切预览',
-    empty: '拖入图片开始处理。',
+    empty: '上传图片开始处理。',
     messages: {
       loadTemplateFailed: '模板加载失败',
       imageLoadFailed: '图片加载失败',
@@ -120,7 +120,7 @@
   },
   imageMerge: {
     layoutTitle: '布局设置',
-    canvasSection: '画布',
+    canvasSection: '图像',
     spacing: '间距',
     frameSize: '边框尺寸',
     background: '背景色',
@@ -145,7 +145,7 @@
   },
   imageRegression: {
     samplingTitle: '采样',
-    sampleSize: '采样框大小',
+    sampleSize: '采样区域大小',
     randomSeed: '随机种子',
     seedPlaceholder: '种子',
     uploadImage: '上传图片',
