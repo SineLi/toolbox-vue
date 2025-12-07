@@ -466,8 +466,15 @@ export default defineComponent({
 .control-sections {
   padding: 10px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 10px;
+  overflow-x: hidden;
+}
+
+@media (max-width: 640px) {
+  .control-sections {
+    grid-template-columns: 1fr;
+  }
 }
 
 .control-section {
@@ -478,6 +485,7 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   gap: 8px;
+  overflow: hidden;
 }
 
 .section-title {
@@ -488,9 +496,15 @@ export default defineComponent({
 
 .controls-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 10px;
   align-items: start;
+}
+
+@media (max-width: 640px) {
+  .controls-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .control-item {
