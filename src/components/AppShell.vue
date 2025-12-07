@@ -6,6 +6,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { getSavedLocale, saveLocale, type LocaleType } from '../i18n'
 import ToolDocDrawer from './ToolDocDrawer.vue'
+import info from './InfoCenter.vue'
 
 const { t, locale } = useI18n()
 const isDark = useDark()
@@ -54,9 +55,6 @@ const goBack = () => {
   }
 }
 
-const goInfo = () => {
-  router.push({ name: 'info-center' })
-}
 
 const CAUTheme = {
   light: {
@@ -215,6 +213,8 @@ watch(currentLanguage, (newLanguage) => {
   saveLocale(newLanguage)
   document.documentElement.setAttribute('lang', newLanguage)
 })
+
+const aboutDialogShow = ref(false)
 </script>
 
 <template>
@@ -242,7 +242,7 @@ watch(currentLanguage, (newLanguage) => {
             </var-cell>
           </template>
         </var-menu>
-        <var-button text round @click="goInfo">
+        <var-button text round @click="aboutDialogShow = true">
           <var-icon name="information-outline" />
         </var-button>
       </template>
@@ -259,6 +259,18 @@ watch(currentLanguage, (newLanguage) => {
       :tool-key="currentToolKey"
       :tool-title="currentToolTitle"
     />
+    <var-dialog 
+      v-model:show="aboutDialogShow"
+      width="100%"
+      :cancel-button="false"
+      :title="t('nav.info')"
+      class="about-dialog"
+    >
+    <div class="about-content">
+        <info/>
+    </div>
+
+    </var-dialog>
   </div>
 </template>
 
@@ -322,4 +334,10 @@ watch(currentLanguage, (newLanguage) => {
   padding: 48px 24px;
   position: relative;
 }
+
+.about-content {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
 </style>
