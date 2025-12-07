@@ -206,7 +206,7 @@ const md3Primary = 'var(--color-primary, #2563eb)'
       />
     </section>
 
-    <section v-if="step === 1" class="panel">
+    <section v-show="step === 1" class="panel">
       <ImageMerge ref="imageMergeRef" :images="processedImages" @updateCanvases="handleUpdateCanvases" />
     </section>
 
