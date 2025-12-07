@@ -26,7 +26,6 @@ declare module 'vue' {
     VarCard: typeof import('@varlet/ui')['_CardComponent']
     VarCell: typeof import('@varlet/ui')['_CellComponent']
     VarCheckbox: typeof import('@varlet/ui')['_CheckboxComponent']
-    VarChip: typeof import('@varlet/ui')['_ChipComponent']
     VarCol: typeof import('@varlet/ui')['_ColComponent']
     VarDialog: typeof import('@varlet/ui')['_DialogComponent']
     VarFab: typeof import('@varlet/ui')['_FabComponent']
