@@ -1,13 +1,8 @@
 <template>
   <div class="info-center">
-    <var-card class="content-card" :title="currentFile?.displayName || t('info.noSelection')">
-      <template #extra>
-        <var-chip type="primary" size="small" v-if="currentFile">{{ currentFile.shortPath }}</var-chip>
-      </template>
       <div v-if="files.length === 0" class="empty">{{ t('info.empty') }}</div>
       <div v-else-if="currentHtml" class="markdown" v-html="currentHtml"></div>
       <div v-else class="empty">{{ t('info.noContent') }}</div>
-    </var-card>
   </div>
 </template>
 
