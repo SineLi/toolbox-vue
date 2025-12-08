@@ -40,5 +40,8 @@ export default defineConfig({
         drop_console: true
       }
     } as any)
-  }
+  },
+  server: {
+    middlewareMode: false,
+  },
 })
