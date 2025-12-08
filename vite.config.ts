@@ -28,7 +28,6 @@ export default defineConfig({
       output: {
         manualChunks: {
           'echarts': ['echarts'],
-          'opencv': ['@techstark/opencv-js'],
           'vendor': ['vue', 'vue-router', 'vue-i18n', '@varlet/ui'],
           'ui-extra': ['element-plus', '@element-plus/icons-vue'],
         }
