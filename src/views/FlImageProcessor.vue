@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onUnmounted, ref, watch, inject, onMounted } from 'vue'
+import { computed, nextTick, onUnmounted, ref, watch, inject, provide } from 'vue'
 import { useI18n } from 'vue-i18n'
 import MatchAndCrop from '../components/fl-image-processor/MatchAndCrop.vue'
 import ImageMerge from '../components/fl-image-processor/ImageMerge.vue'
@@ -29,6 +29,10 @@ const stepHistory = ref<number[]>([])
 const isNavigatingBack = ref(false)
 const imageMergeRef = ref<InstanceType<typeof ImageMerge> | null>(null)
 const openCVLoading = ref(false)
+const cvModule = ref<any>(null)
+
+// 提供 cvModule 给子组件
+provide('cvModule', cvModule)
 
 const hasCroppedImages = computed(() => processedImages.value.length > 0)
 const canGoNext = computed(() => {
@@ -41,37 +45,95 @@ const hasBackHistory = computed(() => stepHistory.value.length > 0)
 
 // 延迟加载 OpenCV.js
 const loadOpenCV = async () => {
-  if (openCVLoading.value || (window as any).cv) {
+  if (openCVLoading.value || cvModule.value) {
     return
   }
   
   openCVLoading.value = true
+  console.log('[FlImageProcessor] Starting to load OpenCV.js')
+  
   try {
+    // 从本地 assets 加载精简版 OpenCV
     const script = document.createElement('script')
-    script.src = 'https://docs.opencv.org/4.6.0/opencv.js'
-    script.async = true
+    script.src = new URL('../assets/opencv/opencv.js', import.meta.url).href
+    console.log('[FlImageProcessor] OpenCV script src:', script.src)
     
     return new Promise<void>((resolve, reject) => {
-      script.onload = () => {
-        openCVLoading.value = false
-        resolve()
+      script.onload = async () => {
+        console.log('[FlImageProcessor] OpenCV script loaded')
+        
+        let retries = 0
+        const checkCv = async () => {
+          retries++
+          const cvObj = (window as any).cv
+          console.log('[FlImageProcessor] Checking cv, attempt', retries, '- type:', typeof cvObj)
+          
+          // cv 可能是 Promise（WASM 初始化） 或 直接对象
+          if (cvObj) {
+            try {
+              // 如果 cv 是 Promise，等待它
+              const cv = await Promise.resolve(cvObj)
+              
+              if (cv && typeof cv.imread === 'function') {
+                console.log('[FlImageProcessor] cv ready!')
+                cvModule.value = cv
+                openCVLoading.value = false
+                resolve()
+                return
+              }
+            } catch (e) {
+              console.error('[FlImageProcessor] Error resolving cv promise:', e)
+            }
+          }
+          
+          if (retries < 100) {
+            // 等待 50ms 后重试（最多 100 次 = 5 秒）
+            setTimeout(checkCv, 50)
+          } else {
+            console.error('[FlImageProcessor] cv not ready after 5 seconds')
+            openCVLoading.value = false
+            reject(new Error('OpenCV failed to initialize'))
+          }
+        }
+        
+        await checkCv()
       }
+      
       script.onerror = () => {
+        console.error('[FlImageProcessor] Failed to load OpenCV.js')
         openCVLoading.value = false
         reject(new Error('Failed to load OpenCV.js'))
       }
+      
       document.head.appendChild(script)
     })
   } catch (error) {
     openCVLoading.value = false
-    console.error('Error loading OpenCV.js:', error)
+    console.error('[FlImageProcessor] Error loading OpenCV.js:', error)
+    throw error
   }
 }
 
-// 页面挂载时开始加载 OpenCV
-onMounted(() => {
-  loadOpenCV()
-})
+// 只有在进入 step 0 时才加载 OpenCV，同时记录步骤历史
+watch(
+  step,
+  async (newVal, oldVal) => {
+    // 加载 OpenCV
+    if (newVal === 0 && !cvModule.value) {
+      await loadOpenCV()
+    }
+    
+    // 记录步骤历史
+    if (isNavigatingBack.value) {
+      isNavigatingBack.value = false
+      return
+    }
+    if (oldVal !== undefined && oldVal !== newVal) {
+      stepHistory.value.push(oldVal)
+    }
+  },
+  { flush: 'sync' },
+)
 
 const updateProcessedImages = (imageTasks: any[]) => {
   const existingTexts = new Map(processedImages.value.map((img) => [img.url, img.text || '']))
@@ -95,20 +157,6 @@ const openDocs = inject<() => void>('openDocs')
 const fabClick = () => {
   if (openDocs) openDocs()
 }
-
-watch(
-  step,
-  (newVal, oldVal) => {
-    if (isNavigatingBack.value) {
-      isNavigatingBack.value = false
-      return
-    }
-    if (oldVal !== undefined && oldVal !== newVal) {
-      stepHistory.value.push(oldVal)
-    }
-  },
-  { flush: 'sync' },
-)
 
 const handleProcessingStart = () => {
   nextDisable.value = true

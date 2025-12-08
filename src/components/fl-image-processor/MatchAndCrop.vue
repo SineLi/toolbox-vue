@@ -65,9 +65,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, reactive, computed, watch } from 'vue'
+import { defineComponent, ref, reactive, computed, watch, inject, type Ref } from 'vue'
 import { Snackbar } from '@varlet/ui'
-import cv, { Mat } from '@techstark/opencv-js'
 import { useI18n } from 'vue-i18n'
 
 interface ImageTask {
@@ -86,8 +85,21 @@ export default defineComponent({
   emits: ['imageProcessed', 'processingStart', 'processingFinished', 'tasksUpdated'],
   setup(_, { emit }) {
     const { t } = useI18n()
+    const cvModule = inject<Ref<any>>('cvModule')
+    const getCv = () => {
+      // 首先检查注入的 cvModule
+      if (cvModule?.value && typeof cvModule.value.imread === 'function') {
+        return cvModule.value
+      }
+      // 如果没有，检查全局 window.cv
+      const globalCv = (window as any).cv
+      if (globalCv && typeof globalCv.imread === 'function') {
+        return globalCv
+      }
+      return null
+    }
     const templateDataUrl = ref<string | null>(null)
-    let templateCannyMat: cv.Mat | null = null
+    let templateCannyMat: any = null
     let templateWidth = 0
     let templateHeight = 0
 
@@ -104,15 +116,36 @@ export default defineComponent({
       })
 
     const handleTemplateAfterRead = async (payload: UploaderFile | UploaderFile[]) => {
+      let cv = getCv()
+      console.log('[MatchAndCrop] Template upload - cv available:', !!cv)
+      
+      // 如果 cv 还没加载，等待一下再重试（最多 100 次，10 秒）
+      let retries = 0
+      while (!cv) {
+        if (retries > 100) {
+          console.error('[MatchAndCrop] cv failed to load after 10 seconds')
+          Snackbar.error('OpenCV 加载失败')
+          return
+        }
+        if (retries % 10 === 0) {
+          console.log('[MatchAndCrop] Waiting for cv... retry', retries)
+        }
+        await new Promise(resolve => setTimeout(resolve, 100))
+        cv = getCv()
+        retries++
+      }
+      
+      console.log('[MatchAndCrop] cv ready after', retries * 100, 'ms')
+      
       const entry = Array.isArray(payload) ? payload[0] : payload
       const file = entry?.file
       if (!file) return
       const dataUrl = await readAsDataURL(file)
       templateDataUrl.value = dataUrl
-      await prepareTemplate(dataUrl)
+      await prepareTemplate(dataUrl, cv)
     }
 
-    const prepareTemplate = async (dataUrl: string) =>
+    const prepareTemplate = async (dataUrl: string, cv: any) =>
       new Promise<void>((resolve) => {
         const img = new Image()
         img.onload = () => {
@@ -129,6 +162,7 @@ export default defineComponent({
           resolve()
         }
         img.onerror = () => {
+          console.error('[MatchAndCrop] Template image load failed')
           Snackbar.error(t('matchAndCrop.messages.loadTemplateFailed'))
           resolve()
         }
@@ -136,6 +170,27 @@ export default defineComponent({
       })
 
     const handleImagesAfterRead = async (payload: UploaderFile | UploaderFile[]) => {
+      let cv = getCv()
+      console.log('[MatchAndCrop] Images upload - cv available:', !!cv)
+      
+      // 如果 cv 还没加载，等待一下再重试（最多 100 次，10 秒）
+      let retries = 0
+      while (!cv) {
+        if (retries > 100) {
+          console.error('[MatchAndCrop] cv failed to load after 10 seconds')
+          Snackbar.error('OpenCV 加载失败')
+          return
+        }
+        if (retries % 10 === 0) {
+          console.log('[MatchAndCrop] Waiting for cv... retry', retries)
+        }
+        await new Promise(resolve => setTimeout(resolve, 100))
+        cv = getCv()
+        retries++
+      }
+      
+      console.log('[MatchAndCrop] Processing images with cv')
+      
       const files = Array.isArray(payload) ? payload : [payload]
       for (const entry of files) {
         const file = entry?.file
@@ -143,6 +198,7 @@ export default defineComponent({
         const originalDataUrl = await readAsDataURL(file)
         await addTask(file, originalDataUrl)
       }
+      emitTasksUpdated()
       if (imageTasks.some((task) => task.processing)) {
         processQueue()
       }
@@ -191,6 +247,13 @@ export default defineComponent({
 
     function processSingleImage(task: ImageTask): Promise<void> {
       return new Promise((resolve) => {
+        const cv = getCv()
+        if (!cv) {
+          Snackbar.error(t('matchAndCrop.messages.missingTemplate'))
+          task.processing = false
+          resolve()
+          return
+        }
         if (!templateCannyMat) {
           Snackbar.error(t('matchAndCrop.messages.missingTemplate'))
           task.processing = false
@@ -212,7 +275,7 @@ export default defineComponent({
             const resultCols = cannyInput.cols - templateWidth + 1
             const resultRows = cannyInput.rows - templateHeight + 1
             result.create(resultRows, resultCols, cv.CV_32FC1)
-            cv.matchTemplate(cannyInput, templateCannyMat as Mat, result, cv.TM_CCOEFF_NORMED)
+            cv.matchTemplate(cannyInput, templateCannyMat as cv.Mat, result, cv.TM_CCOEFF_NORMED)
             const mm = (cv as any).minMaxLoc(result)
             const maxLoc = mm.maxLoc
             result.delete()
@@ -228,7 +291,7 @@ export default defineComponent({
             const roiSmall = new cv.Mat()
             const templateSmall = new cv.Mat()
             cv.resize(roi, roiSmall, new cv.Size(0, 0), 0.25, 0.25, cv.INTER_AREA)
-            cv.resize(templateCannyMat as Mat, templateSmall, new cv.Size(0, 0), 0.25, 0.25, cv.INTER_AREA)
+            cv.resize(templateCannyMat as cv.Mat, templateSmall, new cv.Size(0, 0), 0.25, 0.25, cv.INTER_AREA)
             roi.delete()
 
             let bestAngle = 0
@@ -313,13 +376,13 @@ export default defineComponent({
             task.processing = false
           } catch (err) {
             console.error('Processing failed', err)
-          task.processing = false
-          task.showCroppedURL = null
-          task.processedDataUrl = null
-          Snackbar.error(t('matchAndCrop.messages.processingFailed'))
+            task.processing = false
+            task.showCroppedURL = null
+            task.processedDataUrl = null
+            Snackbar.error(t('matchAndCrop.messages.processingFailed'))
+          }
+          resolve()
         }
-        resolve()
-      }
         inputImage.onerror = () => {
           task.processing = false
           task.showCroppedURL = null
