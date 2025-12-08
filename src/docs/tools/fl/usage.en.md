@@ -6,7 +6,7 @@ This tool provides an all-in-one flow for fluorescence/colorimetric photo proces
 ### Start from a single photo
 
 <center>
-<img src='src/docs/tools/fl/img/1.png' style="max-width:75%;max-height:240px">
+<img src='https://pan.fooood.life/f/O8I9/1.png' style="max-width:75%;max-height:240px">
 </center>
 
 After you photograph each cuvette, you usually need to crop the cuvette out of every shot and stitch them into one image. That’s tedious—this tool can auto-detect, crop, and merge for you.
@@ -15,8 +15,8 @@ After you photograph each cuvette, you usually need to crop the cuvette out of e
 
 Upload a template that contains the target object’s key features; avoid over-cropping. For example, manually crop one clear cuvette from your series of photos. A good template looks like this:
 <center>
-<a href='src/docs/tools/fl/img/2.png' target="_blank" rel="noopener">
-<img src='src/docs/tools/fl/img/2.png' style="max-width:50%;max-height:240px">
+<a href='https://pan.fooood.life/f/dbsW/2.png' target="_blank" rel="noopener">
+<img src='https://pan.fooood.life/f/dbsW/2.png' style="max-width:50%;max-height:240px">
 </a>
 </center>
 
@@ -24,8 +24,8 @@ Upload a template that contains the target object’s key features; avoid over-c
 
 Upload a batch of photos taken in similar conditions (similar angle, consistent target size). The tool will find the target in each image based on the template and crop it out.
 <center>
-<a href='src/docs/tools/fl/img/3.png' target="_blank" rel="noopener">
-<img src='src/docs/tools/fl/img/3.png' style="max-width:75%;max-height:240px">
+<a href='https://pan.fooood.life/f/nEfN/3.png' target="_blank" rel="noopener">
+<img src='https://pan.fooood.life/f/nEfN/3.png' style="max-width:75%;max-height:240px">
 </a>
 </center>
 You can upload multiple images at once; after all are processed you’ll be taken to the merge panel automatically.
@@ -36,8 +36,8 @@ In the merge panel you can set spacing between tiles, frame size, and add labels
 *Note: after adjusting parameters, click **Regenerate** to refresh the preview.*
 When merging looks right, download the stitched image or proceed to color analysis.
 <center>
-<a href='src/docs/tools/fl/img/4.jpg' target="_blank" rel="noopener">
-<img src='src/docs/tools/fl/img/4.jpg' style="max-width:100%;max-height:240px">
+<a href='https://pan.fooood.life/f/klCX/4.jpg' target="_blank" rel="noopener">
+<img src='https://pan.fooood.life/f/klCX/4.jpg' style="max-width:100%;max-height:240px">
 </a>
 </center>
 
@@ -46,15 +46,15 @@ When merging looks right, download the stitched image or proceed to color analys
 On the color analysis panel, pick sampling regions on the merged image and assign labels (or x-axis values). After entering a color formula, the tool calculates each point’s response and plots it. For each sampling area, 10 random pixels are averaged and the standard deviation is recorded. You can set the `Random seed` under Sampling (default `42`).
 In `Sample list`, the index becomes the x-axis when plotting; if numeric, you can use a scatter plot with automatic linear regression. In `Regression`, `Weighting` controls how point errors are handled: `Direct` uses 1/σ, and `Instrument` uses 1/e^σ.
 <center>
-<a href='src/docs/tools/fl/img/5.png' target="_blank" rel="noopener">
-<img src='src/docs/tools/fl/img/5.png' style="max-width:100%;max-height:240px">
+<a href='https://pan.fooood.life/f/X8i8/5.png' target="_blank" rel="noopener">
+<img src='https://pan.fooood.life/f/X8i8/5.png' style="max-width:100%;max-height:240px">
 
-<a href='src/docs/tools/fl/img/6.png' target="_blank" rel="noopener">
-<img src='src/docs/tools/fl/img/6.png' style="max-width:100%;max-height:240px">
+<a href='https://pan.fooood.life/f/wGhG/6.png' target="_blank" rel="noopener">
+<img src='https://pan.fooood.life/f/wGhG/6.png' style="max-width:100%;max-height:240px">
 </a>
 </center>
 
-<a href='src/docs/tools/fl/example/example.zip'>***Click here***</a> to download sample data and try the flow.
+<a href='https://pan.fooood.life/f/mXUN/example.zip'>***Click here***</a> to download sample data and try the flow.
 
 ---
 

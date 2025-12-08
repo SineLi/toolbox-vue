@@ -64,6 +64,7 @@
     },
   },
   flPage: {
+    loadingText:'正在加载运行库',
     steps: {
       match: {
         title: '匹配裁切',
