@@ -330,12 +330,12 @@ export default defineComponent({
           for (const f of fileList.value) {
             const rec = await ensureCsvForFile(f)
             if (rec) recs.push(rec)
+          }
           if (recs.length > 1) {
             await zipAndDownload(recs, `all-${recs.length}.zip`)
           } else if (recs.length === 1) {
             const first = recs[0]
             if (first) triggerDownload(first.url, first.name, true)
-          }
           }
         } catch (e: any) {
           Snackbar.error(t('spc.messages.zipFailed', { message: e?.message || e }))
