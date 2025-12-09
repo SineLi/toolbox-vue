@@ -42,4 +42,4 @@
 ---
 
 ## 反馈
-· [*Github Issue*](https://github.com/SineLi/toolbox-vue/issues)
+· <a href='https://github.com/SineLi/toolbox-vue/issues' target='blank'>*Github Issue*</a>
