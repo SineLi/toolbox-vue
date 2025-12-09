@@ -21,7 +21,7 @@ const docDrawer = ref<InstanceType<typeof ToolDocDrawer> | null>(null)
 const showBack = computed(() => route.name !== 'home')
 const appBarTitle = computed(() => {
   const name = route.name?.toString() ?? ''
-  if (name === 'spc-converter') return t('nav.spc')
+  if (name === 'spd-converter') return t('nav.spd')
   if (name === 'fl-image-processor') return t('nav.fl')
   if (name === 'info-center') return t('nav.info')
   return t('nav.home')
@@ -29,13 +29,13 @@ const appBarTitle = computed(() => {
 
 const currentToolKey = computed(() => {
   const name = route.name?.toString() ?? ''
-  if (name === 'spc-converter') return 'spc'
+  if (name === 'spd-converter') return 'spd'
   if (name === 'fl-image-processor') return 'fl'
   return ''
 })
 
 const currentToolTitle = computed(() => {
-  if (currentToolKey.value === 'spc') return t('nav.spc')
+  if (currentToolKey.value === 'spd') return t('nav.spd')
   if (currentToolKey.value === 'fl') return t('nav.fl')
   return ''
 })

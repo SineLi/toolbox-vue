@@ -6,9 +6,9 @@ const { t } = useI18n()
 
 const tools = computed(() => [
   {
-    name: t('home.tools.spc.name'),
-    desc: t('home.tools.spc.desc'),
-    path: '/spc-converter',
+    name: t('home.tools.spd.name'),
+    desc: t('home.tools.spd.desc'),
+    path: '/spd-converter',
   },
   {
     name: t('home.tools.fl.name'),
