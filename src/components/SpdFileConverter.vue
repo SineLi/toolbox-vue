@@ -210,7 +210,7 @@ export default defineComponent({
 
     const getFileByUid = (uid: string) => fileList.value.find((f) => String(f.uid) === uid)
 
-    const triggerDownload = (url: string, name: string, isBlob: boolean) => {
+    const triggerDownload = (url: string, name: string, isBlob: boolean, uid?: string) => {
       const a = document.createElement('a')
       a.href = url
       a.download = name || 'download'
@@ -218,7 +218,12 @@ export default defineComponent({
       a.click()
       a.remove()
       if (isBlob) {
-        setTimeout(() => URL.revokeObjectURL(url), 1000)
+        setTimeout(() => {
+          URL.revokeObjectURL(url)
+          if (uid) {
+            delete csvMap.value[uid]
+          }
+        }, 1000)
       }
     }
 
@@ -278,7 +283,7 @@ export default defineComponent({
       showSettings.value = false
     }
 
-    const zipAndDownload = async (recs: { url: string; name: string }[], zipName = 'files.zip') => {
+    const zipAndDownload = async (recs: { url: string; name: string; uid?: string }[], zipName = 'files.zip') => {
       const zip = new JSZip()
       for (const rec of recs) {
         const blob = await (await fetch(rec.url)).blob()
@@ -293,18 +298,18 @@ export default defineComponent({
       const ids = selectedIds.value
       if (packDownload.value && ids.length > 1) {
         try {
-          const recs: { url: string; name: string }[] = []
+          const recs: { url: string; name: string; uid: string }[] = []
           for (const id of ids) {
             const f = getFileByUid(id)
             if (!f) continue
             const rec = await ensureCsvForFile(f)
-            if (rec) recs.push(rec)
+            if (rec) recs.push({ ...rec, uid: id })
           }
           if (recs.length > 1) {
             await zipAndDownload(recs, `selected-${recs.length}.zip`)
           } else if (recs.length === 1) {
             const first = recs[0]
-            if (first) triggerDownload(first.url, first.name, true)
+            if (first) triggerDownload(first.url, first.name, true, first.uid)
           }
         } catch (e: any) {
           Snackbar.error(t('spd.messages.zipFailed', { message: e?.message || e }))
@@ -316,7 +321,7 @@ export default defineComponent({
         if (!f) continue
         try {
           const rec = await ensureCsvForFile(f)
-          if (rec) triggerDownload(rec.url, rec.name, true)
+          if (rec) triggerDownload(rec.url, rec.name, true, id)
         } catch (e: any) {
           Snackbar.error(t('spd.messages.parseFailed', { name: f.name, message: e?.message || e }))
         }
@@ -326,16 +331,16 @@ export default defineComponent({
     const downloadAll = async () => {
       if (packDownload.value && fileList.value.length > 1) {
         try {
-          const recs: { url: string; name: string }[] = []
+          const recs: { url: string; name: string; uid: string }[] = []
           for (const f of fileList.value) {
             const rec = await ensureCsvForFile(f)
-            if (rec) recs.push(rec)
+            if (rec) recs.push({ ...rec, uid: String(f.uid) })
           }
           if (recs.length > 1) {
             await zipAndDownload(recs, `all-${recs.length}.zip`)
           } else if (recs.length === 1) {
             const first = recs[0]
-            if (first) triggerDownload(first.url, first.name, true)
+            if (first) triggerDownload(first.url, first.name, true, first.uid)
           }
         } catch (e: any) {
           Snackbar.error(t('spd.messages.zipFailed', { message: e?.message || e }))
@@ -345,7 +350,7 @@ export default defineComponent({
       for (const f of fileList.value) {
         try {
           const rec = await ensureCsvForFile(f)
-          if (rec) triggerDownload(rec.url, rec.name, true)
+          if (rec) triggerDownload(rec.url, rec.name, true, String(f.uid))
         } catch (e: any) {
           Snackbar.error(t('spd.messages.parseFailed', { name: f.name, message: e?.message || e }))
         }
