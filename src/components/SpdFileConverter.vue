@@ -17,8 +17,8 @@
             >
               <div class="upload-text">
                 <var-icon name="cloud-upload" size="28" />
-                <div class="upload-title">{{ t('spc.uploadTitle') }}</div>
-                <div class="upload-sub" v-html="t('spc.uploadSub')"></div>
+                <div class="upload-title">{{ t('spd.uploadTitle') }}</div>
+                <div class="upload-sub" v-html="t('spd.uploadSub')"></div>
               </div>
             </el-upload>
           </var-col>
@@ -27,18 +27,18 @@
             <div class="setting-tools">
               <div class="tools-left">
                 <var-button type="primary" @click="downloadSelected" :disabled="!hasSelection">
-                  {{ t('spc.downloadSelected') }}
+                  {{ t('spd.downloadSelected') }}
                 </var-button>
                 <var-button type="primary" @click="downloadAll" :disabled="!fileList.length">
-                  {{ t('spc.downloadAll') }}
+                  {{ t('spd.downloadAll') }}
                 </var-button>
               </div>
               <div class="tools-left">
                 <var-button type="warning" @click="deleteSelected" :disabled="!hasSelection">
-                  {{ t('spc.removeSelected') }}
+                  {{ t('spd.removeSelected') }}
                 </var-button>
                 <var-button type="danger" @click="deleteAll" :disabled="!fileList.length">
-                  {{ t('spc.removeAll') }}
+                  {{ t('spd.removeAll') }}
                 </var-button>
               </div>
             </div>
@@ -55,9 +55,9 @@
     <transition name="list-card" appear>
       <var-card v-if="hasFiles" class="file-list-card" ref="fileListCard">
         <div class="file-list-header">
-          <h3>{{ t('spc.uploadedFiles') }}</h3>
+          <h3>{{ t('spd.uploadedFiles') }}</h3>
           <div class="file-count" v-if="fileList.length">
-            {{ t('spc.total', { count: fileList.length }) }}
+            {{ t('spd.total', { count: fileList.length }) }}
           </div>
         </div>
 
@@ -82,7 +82,7 @@
 
               <template #extra>
                 <var-button text type="danger" size="small" @click="removeFile(String(file.uid))">
-                  {{ t('spc.remove') }}
+                  {{ t('spd.remove') }}
                 </var-button>
               </template>
             </var-cell>
@@ -90,7 +90,7 @@
 
           <div v-else class="empty-state">
             <var-icon name="file-question-outline" size="36" />
-            <p>{{ t('spc.empty') }}</p>
+            <p>{{ t('spd.empty') }}</p>
           </div>
         </var-list>
       </var-card>
@@ -99,19 +99,19 @@
 
   <var-dialog
     v-model:show="showSettings"
-    :title="t('spc.settings')"
+    :title="t('spd.settings')"
     :close-on-click-overlay="true"
     :cancel-button="false"
     :confirm-button-text="t('common.confirm')"
     @confirm="onConfirmSettings"
   >
     <div class="settings-list">
-      <var-cell :title="t('spc.zipDownload')" :description="t('spc.zipDesc')" border>
+      <var-cell :title="t('spd.zipDownload')" :description="t('spd.zipDesc')" border>
         <template #extra>
           <var-switch v-model="packDownload" />
         </template>
       </var-cell>
-      <var-cell :title="t('spc.autoDownload')" :description="t('spc.autoDesc')" border>
+      <var-cell :title="t('spd.autoDownload')" :description="t('spd.autoDesc')" border>
         <template #extra>
           <var-switch v-model="autoDownload" />
         </template>
@@ -130,7 +130,7 @@ import JSZip from 'jszip'
 import { useI18n } from 'vue-i18n'
 
 export default defineComponent({
-  name: 'SpcFileConverter',
+  name: 'spdFileConverter',
   setup() {
     const { t } = useI18n()
     const fileList = ref<UploadFile[]>([])
@@ -173,7 +173,7 @@ export default defineComponent({
           const rec = await ensureCsvForFile(file)
           if (rec) triggerDownload(rec.url, rec.name, true)
         } catch (e: any) {
-          Snackbar.error(t('spc.messages.parseFailed', { name: file.name, message: e?.message || e }))
+          Snackbar.error(t('spd.messages.parseFailed', { name: file.name, message: e?.message || e }))
         }
       }
     }
@@ -210,7 +210,7 @@ export default defineComponent({
 
     const getFileByUid = (uid: string) => fileList.value.find((f) => String(f.uid) === uid)
 
-    const triggerDownload = (url: string, name: string, isBlob: boolean) => {
+    const triggerDownload = (url: string, name: string, isBlob: boolean, uid?: string) => {
       const a = document.createElement('a')
       a.href = url
       a.download = name || 'download'
@@ -218,7 +218,12 @@ export default defineComponent({
       a.click()
       a.remove()
       if (isBlob) {
-        setTimeout(() => URL.revokeObjectURL(url), 1000)
+        setTimeout(() => {
+          URL.revokeObjectURL(url)
+          if (uid) {
+            delete csvMap.value[uid]
+          }
+        }, 1000)
       }
     }
 
@@ -278,7 +283,7 @@ export default defineComponent({
       showSettings.value = false
     }
 
-    const zipAndDownload = async (recs: { url: string; name: string }[], zipName = 'files.zip') => {
+    const zipAndDownload = async (recs: { url: string; name: string; uid?: string }[], zipName = 'files.zip') => {
       const zip = new JSZip()
       for (const rec of recs) {
         const blob = await (await fetch(rec.url)).blob()
@@ -293,21 +298,21 @@ export default defineComponent({
       const ids = selectedIds.value
       if (packDownload.value && ids.length > 1) {
         try {
-          const recs: { url: string; name: string }[] = []
+          const recs: { url: string; name: string; uid: string }[] = []
           for (const id of ids) {
             const f = getFileByUid(id)
             if (!f) continue
             const rec = await ensureCsvForFile(f)
-            if (rec) recs.push(rec)
+            if (rec) recs.push({ ...rec, uid: id })
           }
           if (recs.length > 1) {
             await zipAndDownload(recs, `selected-${recs.length}.zip`)
           } else if (recs.length === 1) {
             const first = recs[0]
-            if (first) triggerDownload(first.url, first.name, true)
+            if (first) triggerDownload(first.url, first.name, true, first.uid)
           }
         } catch (e: any) {
-          Snackbar.error(t('spc.messages.zipFailed', { message: e?.message || e }))
+          Snackbar.error(t('spd.messages.zipFailed', { message: e?.message || e }))
         }
         return
       }
@@ -316,9 +321,9 @@ export default defineComponent({
         if (!f) continue
         try {
           const rec = await ensureCsvForFile(f)
-          if (rec) triggerDownload(rec.url, rec.name, true)
+          if (rec) triggerDownload(rec.url, rec.name, true, id)
         } catch (e: any) {
-          Snackbar.error(t('spc.messages.parseFailed', { name: f.name, message: e?.message || e }))
+          Snackbar.error(t('spd.messages.parseFailed', { name: f.name, message: e?.message || e }))
         }
       }
     }
@@ -326,28 +331,28 @@ export default defineComponent({
     const downloadAll = async () => {
       if (packDownload.value && fileList.value.length > 1) {
         try {
-          const recs: { url: string; name: string }[] = []
+          const recs: { url: string; name: string; uid: string }[] = []
           for (const f of fileList.value) {
             const rec = await ensureCsvForFile(f)
-            if (rec) recs.push(rec)
+            if (rec) recs.push({ ...rec, uid: String(f.uid) })
+          }
           if (recs.length > 1) {
             await zipAndDownload(recs, `all-${recs.length}.zip`)
           } else if (recs.length === 1) {
             const first = recs[0]
-            if (first) triggerDownload(first.url, first.name, true)
-          }
+            if (first) triggerDownload(first.url, first.name, true, first.uid)
           }
         } catch (e: any) {
-          Snackbar.error(t('spc.messages.zipFailed', { message: e?.message || e }))
+          Snackbar.error(t('spd.messages.zipFailed', { message: e?.message || e }))
         }
         return
       }
       for (const f of fileList.value) {
         try {
           const rec = await ensureCsvForFile(f)
-          if (rec) triggerDownload(rec.url, rec.name, true)
+          if (rec) triggerDownload(rec.url, rec.name, true, String(f.uid))
         } catch (e: any) {
-          Snackbar.error(t('spc.messages.parseFailed', { name: f.name, message: e?.message || e }))
+          Snackbar.error(t('spd.messages.parseFailed', { name: f.name, message: e?.message || e }))
         }
       }
     }
@@ -374,13 +379,13 @@ export default defineComponent({
     }
 
     const parseSpdToCsv = async (file: UploadFile): Promise<{ url: string; name: string } | null> => {
-      if (!(file.raw instanceof Blob)) throw new Error(t('spc.messages.missingRaw'))
+      if (!(file.raw instanceof Blob)) throw new Error(t('spd.messages.missingRaw'))
       const buf = await file.raw.arrayBuffer()
       const dv = new DataView(buf)
       const headerBytes: number[] = []
       for (let i = 0; i < 5 && i < dv.byteLength; i++) headerBytes.push(dv.getUint8(i))
       const header = String.fromCharCode(...headerBytes)
-      if (header !== 'UVWIN') throw new Error(t('spc.messages.unexpectedType'))
+      if (header !== 'UVWIN') throw new Error(t('spd.messages.unexpectedType'))
 
       const start = 1029
       const pairs: string[] = []

@@ -5,7 +5,7 @@ const en = {
   },
   nav: {
     home: 'Toolbox',
-    spc: 'SPC File Converter',
+    spd: 'SPD File Converter',
     fl: 'FL Image Processor',
     info: 'About',
   },
@@ -28,8 +28,8 @@ const en = {
     title: 'Choose a utility',
     lead: 'Click a card to open a focused tool in this workspace.',
     tools: {
-      spc: {
-        name: 'SPC File Converter',
+      spd: {
+        name: 'SPD File Converter',
         desc: 'Convert .spd spectral data to CSV with multi-file selection and batch downloads.',
       },
       fl: {
@@ -39,7 +39,7 @@ const en = {
     },
     open: 'Open',
   },
-  spc: {
+  spd: {
     uploadTitle: 'Drag .spd files here',
     uploadSub: 'or <em>click to choose</em>',
     downloadSelected: 'Download selected',

@@ -5,7 +5,7 @@
   },
   nav: {
     home: '工具箱',
-    spc: 'SPC 文件转换器',
+    spd: 'SPD 文件转换器',
     fl: '可视化处理工具',
     info: '关于',
   },
@@ -28,8 +28,8 @@
     title: '选择一个工具',
     lead: '点击卡片打开对应的工具。',
     tools: {
-      spc: {
-        name: 'SPC 文件转换器',
+      spd: {
+        name: 'SPD 文件转换器',
         desc: '将 .spd 光谱数据批量转换为 CSV，支持多选与打包下载。',
       },
       fl: {
@@ -39,7 +39,7 @@
     },
     open: '打开',
   },
-  spc: {
+  spd: {
     uploadTitle: '将 .spd 文件拖到此处',
     uploadSub: '或<em>点击选择</em>',
     downloadSelected: '下载已选择',

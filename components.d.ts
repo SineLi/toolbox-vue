@@ -20,6 +20,7 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SpcFileConverter: typeof import('./src/components/SpcFileConverter.vue')['default']
+    SpdFileConverter: typeof import('./src/components/SpdFileConverter.vue')['default']
     ToolDocDrawer: typeof import('./src/components/ToolDocDrawer.vue')['default']
     VarAppBar: typeof import('@varlet/ui')['_AppBarComponent']
     VarButton: typeof import('@varlet/ui')['_ButtonComponent']
