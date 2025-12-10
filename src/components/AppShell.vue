@@ -254,7 +254,7 @@ const aboutDialogShow = ref(false)
       </div>
     </main>
     <ToolDocDrawer
-      v-if="currentToolKey"
+      v-show="currentToolKey"
       ref="docDrawer"
       :tool-key="currentToolKey"
       :tool-title="currentToolTitle"
