@@ -35,6 +35,7 @@ declare module 'vue' {
     VarList: typeof import('@varlet/ui')['_ListComponent']
     VarLoading: typeof import('@varlet/ui')['_LoadingComponent']
     VarMenu: typeof import('@varlet/ui')['_MenuComponent']
+    VarOption: typeof import('@varlet/ui')['_OptionComponent']
     VarPopup: typeof import('@varlet/ui')['_PopupComponent']
     VarProgress: typeof import('@varlet/ui')['_ProgressComponent']
     VarRow: typeof import('@varlet/ui')['_RowComponent']
