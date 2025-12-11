@@ -1,0 +1,17 @@
+diff --git a/node_modules/@varlet/ui/es/drag/Drag.mjs b/node_modules/@varlet/ui/es/drag/Drag.mjs
+index 3d2d7f2..b1f2c2d 100644
+--- a/node_modules/@varlet/ui/es/drag/Drag.mjs
++++ b/node_modules/@varlet/ui/es/drag/Drag.mjs
+@@ -89,6 +89,12 @@ const __sfc__ = defineComponent({
+         return;
+       }
+       moveTouch(event);
++      
++      // 只有当位移超过 1px 时才视为拖拽
++      if (Math.abs(moveX.value) < 1 && Math.abs(moveY.value) < 1) {
++        return;
++      }
++
+       preventDefault(event);
+       enableTransition.value = false;
+       dragged.value = true;
