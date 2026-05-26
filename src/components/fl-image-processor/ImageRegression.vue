@@ -258,10 +258,9 @@ export default defineComponent({
     interface MLDataPoint {
       x: number
       y: number
-      batchId: number
-      batchLabel: string
+      num: number
+      batchResults: Record<number, number>
       clusterLabel: number
-      sampleId: number
     }
     interface MLResult {
       points: MLDataPoint[]
@@ -445,20 +444,48 @@ export default defineComponent({
     async function runMLAnalysis() {
       isMLRunning.value = true
       try {
-        const allPoints: { result: number; batchId: number; batchLabel: string; sampleId: number }[] = []
-        for (const batch of batches.value) {
-          for (const sq of batch.squares) {
-            if (sq.result !== undefined) {
-              allPoints.push({ result: sq.result, batchId: batch.id, batchLabel: batch.label, sampleId: sq.id })
-            }
-          }
-        }
-        if (allPoints.length < 2) {
+        const activeBatches = batches.value.filter((b) => b.squares.some((sq) => sq.result !== undefined && sq.num !== undefined))
+        if (activeBatches.length < 1) {
           isMLRunning.value = false
           return
         }
 
-        const data = allPoints.map((p) => [p.result])
+        const numMap = new Map<number, Record<number, number>>()
+        for (const batch of activeBatches) {
+          for (const sq of batch.squares) {
+            if (sq.result === undefined || sq.num === undefined || isNaN(Number(sq.num))) continue
+            const num = Number(sq.num)
+            if (!numMap.has(num)) numMap.set(num, {})
+            numMap.get(num)![batch.id] = sq.result
+          }
+        }
+
+        const sortedNums = [...numMap.keys()].sort((a, b) => a - b)
+        const batchIds = activeBatches.map((b) => b.id)
+        const missingInfo: string[] = []
+        const alignedNums: number[] = []
+        const data: number[][] = []
+
+        for (const num of sortedNums) {
+          const row = numMap.get(num)!
+          const missing = batchIds.filter((bid) => row[bid] === undefined)
+          if (missing.length > 0) {
+            const missingLabels = missing.map((bid) => activeBatches.find((b) => b.id === bid)?.label ?? bid)
+            missingInfo.push(`${num}: ${missingLabels.join(', ')}`)
+            continue
+          }
+          alignedNums.push(num)
+          data.push(batchIds.map((bid) => row[bid]))
+        }
+
+        if (missingInfo.length > 0) {
+          console.warn('Incomplete data skipped:', missingInfo.join(' | '))
+        }
+        if (data.length < 2) {
+          isMLRunning.value = false
+          return
+        }
+
         let projected: number[][] = []
 
         if (mlConfig.value.dimReduction === 'pca') {
@@ -468,18 +495,17 @@ export default defineComponent({
           projected = pca.predict(data, { nComponents: nComp }) as number[][]
           const variance = pca.getExplainedVariance()
           mlResult.value = {
-            points: allPoints.map((p, i) => ({
+            points: alignedNums.map((num, i) => ({
               x: projected[i][0] ?? 0,
               y: projected[i][1] ?? 0,
-              batchId: p.batchId,
-              batchLabel: p.batchLabel,
+              num,
+              batchResults: numMap.get(num)!,
               clusterLabel: 0,
-              sampleId: p.sampleId,
             })),
             explainedVariance: variance,
           }
         } else {
-          const labels = allPoints.map((p) => p.batchId)
+          const labels = alignedNums
           const uniqueLabels = [...new Set(labels)]
           if (uniqueLabels.length < 2) {
             projected = data.map((d) => [d[0], 0])
@@ -487,13 +513,12 @@ export default defineComponent({
             projected = ldaProject(data, labels)
           }
           mlResult.value = {
-            points: allPoints.map((p, i) => ({
+            points: alignedNums.map((num, i) => ({
               x: projected[i][0] ?? 0,
               y: projected[i][1] ?? 0,
-              batchId: p.batchId,
-              batchLabel: p.batchLabel,
+              num,
+              batchResults: numMap.get(num)!,
               clusterLabel: 0,
-              sampleId: p.sampleId,
             })),
           }
         }
@@ -509,8 +534,13 @@ export default defineComponent({
           } else {
             const { agnes } = await import('ml-hclust')
             const tree = agnes(clusterData, { method: 'ward' })
-            const cutResult = tree.cut(mlConfig.value.kClusters)
-            clusterLabels = cutResult.map((cluster: any) => cluster.index ?? 0)
+            const grouped = tree.group(mlConfig.value.kClusters)
+            clusterLabels = new Array(clusterData.length).fill(0)
+            grouped.children.forEach((cluster: any, clusterIdx: number) => {
+              for (const idx of cluster.indices()) {
+                clusterLabels[idx] = clusterIdx
+              }
+            })
           }
 
           mlResult.value.points = mlResult.value.points.map((p, i) => ({
@@ -649,34 +679,29 @@ export default defineComponent({
       const inst = chartInstance ?? initChartWithRetry()
       if (!inst || !mlResult.value) return
 
-      const batchesMap = new Map<number, { label: string; color: string }>()
-      for (const batch of batches.value) batchesMap.set(batch.id, { label: batch.label, color: batch.color })
-
       const clusterColors = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399', '#9B59B6', '#1ABC9C', '#E74C3C']
       const seriesMap = new Map<string, echarts.SeriesOption>()
 
       for (const pt of mlResult.value.points) {
-        const batchInfo = batchesMap.get(pt.batchId)
-        const batchName = batchInfo?.label ?? `Batch ${pt.batchId}`
-        const clusterName = mlConfig.value.clustering !== 'none'
+        const seriesName = mlConfig.value.clustering !== 'none'
           ? t('imageRegression.arrayMode.clusterLabel', { id: pt.clusterLabel })
-          : batchName
+          : `num=${pt.num}`
 
-        if (!seriesMap.has(clusterName)) {
-          seriesMap.set(clusterName, {
-            name: clusterName,
+        if (!seriesMap.has(seriesName)) {
+          seriesMap.set(seriesName, {
+            name: seriesName,
             type: 'scatter',
             data: [],
             symbolSize: 10,
             itemStyle: {
               color: mlConfig.value.clustering !== 'none'
                 ? clusterColors[pt.clusterLabel % clusterColors.length]
-                : (batchInfo?.color ?? '#409EFF'),
+                : clusterColors[pt.num % clusterColors.length],
             },
           })
         }
-        const series = seriesMap.get(clusterName)! as any
-        series.data.push([pt.x, pt.y])
+        const series = seriesMap.get(seriesName)! as any
+        series.data.push([pt.x, pt.y, pt.num])
       }
 
       const titleText = mlConfig.value.dimReduction === 'pca'
@@ -689,8 +714,8 @@ export default defineComponent({
         tooltip: {
           trigger: 'item',
           formatter: (params: any) => {
-            const pt = params.data
-            return `(${pt[0]?.toFixed(3)}, ${pt[1]?.toFixed(3)})`
+            const d = params.data
+            return `num=${d[2]} (${d[0]?.toFixed(3)}, ${d[1]?.toFixed(3)})`
           },
         },
         grid: { left: 60, right: 20, top: 70, bottom: 50 },
@@ -715,10 +740,14 @@ export default defineComponent({
 
     function downloadMLResult() {
       if (!mlResult.value) return
-      const header = ['sampleId', 'batchId', 'batchLabel', 'x', 'y', 'cluster']
+      const batchIds = batches.value.filter((b) => b.squares.some((sq) => sq.result !== undefined)).map((b) => b.id)
+      const header = ['num', ...batchIds.map((bid) => `batch_${bid}`), 'x', 'y', 'cluster']
       const lines = [header.join(',')]
       for (const pt of mlResult.value.points) {
-        lines.push([pt.sampleId, pt.batchId, pt.batchLabel, pt.x.toFixed(6), pt.y.toFixed(6), pt.clusterLabel].join(','))
+        const row = [pt.num]
+        for (const bid of batchIds) row.push(pt.batchResults[bid]?.toFixed(6) ?? '')
+        row.push(pt.x.toFixed(6), pt.y.toFixed(6), String(pt.clusterLabel))
+        lines.push(row.join(','))
       }
       const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' })
       const url = URL.createObjectURL(blob)
