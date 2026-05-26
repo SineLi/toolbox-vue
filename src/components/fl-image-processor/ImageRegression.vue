@@ -588,17 +588,25 @@ export default defineComponent({
     function powerIteration(mat: number[][], nVectors: number): number[][] {
       const n = mat.length
       const vectors: number[][] = []
+      const M = mat.map((row) => [...row])
       for (let v = 0; v < nVectors; v++) {
         let vec = Array.from({ length: n }, () => Math.random() - 0.5)
         for (let iter = 0; iter < 100; iter++) {
           const newVec = new Array(n).fill(0)
-          for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) newVec[i] += mat[i][j] * vec[j]
+          for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) newVec[i] += M[i][j] * vec[j]
           const norm = Math.sqrt(newVec.reduce((s, x) => s + x * x, 0))
-          if (norm > 0) for (let i = 0; i < n; i++) newVec[i] /= norm
+          if (norm < 1e-10) { vec = new Array(n).fill(0); break }
+          for (let i = 0; i < n; i++) newVec[i] /= norm
           vec = newVec
         }
+        const eig = Math.sqrt(vec.reduce((s, x) => s + x * x, 0))
+        if (eig < 1e-10) { vectors.push(new Array(n).fill(0)); continue }
         vectors.push(vec)
+        let lambda = 0
+        for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) lambda += vec[i] * mat[i][j] * vec[j]
+        for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) M[i][j] -= lambda * vec[i] * vec[j]
       }
+      while (vectors.length < nVectors) vectors.push(new Array(n).fill(0))
       return vectors
     }
 
@@ -804,8 +812,9 @@ export default defineComponent({
       if (previewX.value !== null && previewY.value !== null) {
         ctx.strokeStyle = 'green'
         ctx.lineWidth = 2
-        const half = sampleSize.value / 2
-        ctx.strokeRect(previewX.value - half, previewY.value - half, sampleSize.value, sampleSize.value)
+        const size = arrayMode.value && activeBatch.value ? activeBatch.value.sampleSize : sampleSize.value
+        const half = size / 2
+        ctx.strokeRect(previewX.value - half, previewY.value - half, size, size)
       }
     }
 
