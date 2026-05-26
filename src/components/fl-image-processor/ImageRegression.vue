@@ -61,12 +61,19 @@
       <div v-if="batches.length === 0" class="batch-empty">{{ t('imageRegression.arrayMode.addBatch') }}</div>
     </var-card>
 
-    <div class="canvas-container">
+    <div class="canvas-container" :class="{ 'canvas-zoomed': arrayMode && canvasZoom !== 1 }">
       <div v-if="isLoading" class="loading-mask">
         <var-loading type="wave" />
       </div>
+      <div v-if="arrayMode" class="zoom-controls">
+        <var-button size="mini" @click="zoomOut">−</var-button>
+        <span class="zoom-label">{{ Math.round(canvasZoom * 100) }}%</span>
+        <var-button size="mini" @click="zoomIn">+</var-button>
+        <var-button size="mini" @click="zoomReset">{{ t('imageRegression.arrayMode.zoomReset') }}</var-button>
+      </div>
       <canvas
         ref="visibleCanvas"
+        :style="arrayMode ? { width: visibleCanvas ? visibleCanvas.width * canvasZoom + 'px' : 'auto', height: visibleCanvas ? visibleCanvas.height * canvasZoom + 'px' : 'auto' } : {}"
         @mousemove="handleMouseMove"
         @mouseleave="handleMouseLeave"
         @click="handleCanvasClick"
@@ -269,6 +276,7 @@ export default defineComponent({
     const mlResult = ref<MLResult | null>(null)
     const isMLRunning = ref<boolean>(false)
     const batchFillMode = ref<boolean>(false)
+    const canvasZoom = ref<number>(1)
 
     const activeBatch = computed(() => batches.value.find((b) => b.id === activeBatchId.value) || null)
     const hasArrayResults = computed(() => batches.value.some((b) => b.squares.some((s) => s.result !== undefined)))
@@ -304,6 +312,16 @@ export default defineComponent({
 
     function selectBatch(id: number) {
       activeBatchId.value = id
+    }
+
+    function zoomIn() {
+      canvasZoom.value = Math.min(5, +(canvasZoom.value + 0.25).toFixed(2))
+    }
+    function zoomOut() {
+      canvasZoom.value = Math.max(0.25, +(canvasZoom.value - 0.25).toFixed(2))
+    }
+    function zoomReset() {
+      canvasZoom.value = 1
     }
 
     function removeSquareFromBatch(batchId: number, squareId: number) {
@@ -1303,11 +1321,15 @@ export default defineComponent({
       hasArrayResults,
       hasArraySamples,
       batchFillMode,
+      canvasZoom,
       dimReductionOptions,
       addBatch,
       removeBatch,
       selectBatch,
       removeSquareFromBatch,
+      zoomIn,
+      zoomOut,
+      zoomReset,
       runAllBatches,
       runMLAnalysis,
       downloadMLResult,
@@ -1377,9 +1399,26 @@ export default defineComponent({
   position: relative;
 }
 
+.canvas-zoomed {
+  max-height: none;
+}
+
 canvas {
   display: block;
   min-height: 300px;
+}
+
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.zoom-label {
+  font-size: 12px;
+  min-width: 40px;
+  text-align: center;
 }
 
 .loading-mask {

@@ -218,6 +218,7 @@ const en = {
       resultsTitle: 'Array Results',
       noResults: 'Please run sampling & calculate first',
       batchFill: 'Batch Fill',
+      zoomReset: 'Reset',
       mlAnalysis: 'ML Analysis',
       dimReduction: 'Dimensionality Reduction',
       dimReductionPCA: 'PCA',
