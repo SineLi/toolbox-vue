@@ -61,7 +61,7 @@
       <div v-if="batches.length === 0" class="batch-empty">{{ t('imageRegression.arrayMode.addBatch') }}</div>
     </var-card>
 
-    <div class="canvas-container" :class="{ 'canvas-zoomed': arrayMode && canvasZoom !== 1 }">
+    <div class="canvas-container" :class="{ 'canvas-zoomed': arrayMode && canvasZoom !== 1.25 }">
       <div v-if="isLoading" class="loading-mask">
         <var-loading type="wave" />
       </div>
@@ -283,7 +283,7 @@ export default defineComponent({
     const mlResult = ref<MLResult | null>(null)
     const isMLRunning = ref<boolean>(false)
     const batchFillMode = ref<boolean>(false)
-    const canvasZoom = ref<number>(1)
+    const canvasZoom = ref<number>(1.25)
 
     const activeBatch = computed(() => batches.value.find((b) => b.id === activeBatchId.value) || null)
     const hasArrayResults = computed(() => batches.value.some((b) => b.squares.some((s) => s.result !== undefined)))
@@ -328,7 +328,7 @@ export default defineComponent({
       canvasZoom.value = Math.max(0.25, +(canvasZoom.value - 0.25).toFixed(2))
     }
     function zoomReset() {
-      canvasZoom.value = 1
+      canvasZoom.value = 1.25
     }
 
     function removeSquareFromBatch(batchId: number, squareId: number) {
