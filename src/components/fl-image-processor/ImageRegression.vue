@@ -450,32 +450,38 @@ export default defineComponent({
           return
         }
 
-        const numMap = new Map<number, Record<number, number>>()
+        const numBatchSum = new Map<number, Map<number, number>>()
+        const numBatchCount = new Map<number, Map<number, number>>()
         for (const batch of activeBatches) {
           for (const sq of batch.squares) {
             if (sq.result === undefined || sq.num === undefined || isNaN(Number(sq.num))) continue
             const num = Number(sq.num)
-            if (!numMap.has(num)) numMap.set(num, {})
-            numMap.get(num)![batch.id] = sq.result
+            if (!numBatchSum.has(num)) numBatchSum.set(num, new Map())
+            if (!numBatchCount.has(num)) numBatchCount.set(num, new Map())
+            const sumMap = numBatchSum.get(num)!
+            const cntMap = numBatchCount.get(num)!
+            sumMap.set(batch.id, (sumMap.get(batch.id) ?? 0) + sq.result)
+            cntMap.set(batch.id, (cntMap.get(batch.id) ?? 0) + 1)
           }
         }
 
-        const sortedNums = [...numMap.keys()].sort((a, b) => a - b)
+        const sortedNums = [...numBatchSum.keys()].sort((a, b) => a - b)
         const batchIds = activeBatches.map((b) => b.id)
         const missingInfo: string[] = []
         const alignedNums: number[] = []
         const data: number[][] = []
 
         for (const num of sortedNums) {
-          const row = numMap.get(num)!
-          const missing = batchIds.filter((bid) => row[bid] === undefined)
+          const sumRow = numBatchSum.get(num)!
+          const cntRow = numBatchCount.get(num)!
+          const missing = batchIds.filter((bid) => !cntRow.has(bid))
           if (missing.length > 0) {
             const missingLabels = missing.map((bid) => activeBatches.find((b) => b.id === bid)?.label ?? bid)
             missingInfo.push(`${num}: ${missingLabels.join(', ')}`)
             continue
           }
           alignedNums.push(num)
-          data.push(batchIds.map((bid) => row[bid]))
+          data.push(batchIds.map((bid) => sumRow.get(bid)! / cntRow.get(bid)!))
         }
 
         if (missingInfo.length > 0) {
@@ -492,14 +498,23 @@ export default defineComponent({
           const { PCA } = await import('ml-pca')
           const pca = new PCA(data)
           const nComp = Math.min(2, data[0].length)
-          projected = pca.predict(data, { nComponents: nComp }) as number[][]
+          const raw = pca.predict(data, { nComponents: nComp })
+          projected = Array.from({ length: raw.rows }, (_, i) =>
+            Array.from({ length: raw.columns }, (_, j) => raw.get(i, j)),
+          )
           const variance = pca.getExplainedVariance()
           mlResult.value = {
             points: alignedNums.map((num, i) => ({
               x: projected[i][0] ?? 0,
               y: projected[i][1] ?? 0,
               num,
-              batchResults: numMap.get(num)!,
+              batchResults: (() => {
+                const row: Record<number, number> = {}
+                const sumRow = numBatchSum.get(num)!
+                const cntRow = numBatchCount.get(num)!
+                for (const bid of batchIds) row[bid] = sumRow.get(bid)! / cntRow.get(bid)!
+                return row
+              })(),
               clusterLabel: 0,
             })),
             explainedVariance: variance,
@@ -517,7 +532,13 @@ export default defineComponent({
               x: projected[i][0] ?? 0,
               y: projected[i][1] ?? 0,
               num,
-              batchResults: numMap.get(num)!,
+              batchResults: (() => {
+                const row: Record<number, number> = {}
+                const sumRow = numBatchSum.get(num)!
+                const cntRow = numBatchCount.get(num)!
+                for (const bid of batchIds) row[bid] = sumRow.get(bid)! / cntRow.get(bid)!
+                return row
+              })(),
               clusterLabel: 0,
             })),
           }
