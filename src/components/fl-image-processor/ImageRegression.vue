@@ -2,7 +2,10 @@
   <div class="image-regression">
     <var-card class="controls-card" :title="t('imageRegression.samplingTitle')">
       <template v-if="(props.fullRes && props.fullRes !== 'data:,') || uploadedImg">
-        <div class="control-row">
+        <div class="array-mode-toggle">
+          <var-switch v-model="arrayMode" :label="t('imageRegression.arrayMode.toggle')" />
+        </div>
+        <div class="control-row" v-if="!arrayMode">
           <div class="control-item" style="gap: 16px;">
             <span class="label">{{ t('imageRegression.sampleSize') }}</span>
             <var-slider
@@ -26,10 +29,61 @@
       </template>
     </var-card>
 
+    <var-card v-if="arrayMode && ((props.fullRes && props.fullRes !== 'data:,') || uploadedImg)" class="controls-card" :title="t('imageRegression.arrayMode.batchList')">
+      <div class="batch-actions">
+        <var-button type="primary" size="small" @click="addBatch">{{ t('imageRegression.arrayMode.addBatch') }}</var-button>
+        <var-tooltip :content="t('imageRegression.arrayMode.runAllTooltip')">
+          <var-button type="success" size="small" @click="runAllBatches">{{ t('imageRegression.arrayMode.runAll') }}</var-button>
+        </var-tooltip>
+      </div>
+      <div v-for="batch in batches" :key="batch.id" class="batch-item" :class="{ active: activeBatchId === batch.id }" @click="selectBatch(batch.id)">
+        <div class="batch-header">
+          <div class="batch-color-dot" :style="{ background: batch.color }"></div>
+          <var-input v-model="batch.label" size="small" :placeholder="t('imageRegression.arrayMode.batchNamePlaceholder')" class="batch-name-input" @click.stop />
+          <var-button type="danger" size="mini" @click.stop="removeBatch(batch.id)">{{ t('imageRegression.arrayMode.removeBatch') }}</var-button>
+        </div>
+        <div class="batch-config">
+          <div class="batch-config-row">
+            <var-input v-model="batch.formula" size="small" :placeholder="t('imageRegression.arrayMode.batchFormulaPlaceholder')" class="batch-formula-input" @click.stop />
+            <div class="batch-field">
+              <span class="label-sm">{{ t('imageRegression.arrayMode.sampleSize') }}</span>
+              <var-input v-model.number="batch.sampleSize" type="number" size="small" @click.stop />
+            </div>
+            <div class="batch-field">
+              <span class="label-sm">{{ t('imageRegression.arrayMode.randomSeed') }}</span>
+              <var-input v-model="batch.randomSeed" size="small" :placeholder="t('imageRegression.arrayMode.seedPlaceholder')" @click.stop />
+            </div>
+          </div>
+          <div class="batch-config-row">
+            <var-select v-model="batch.sampleMode" size="small" :options="sampleModeOptions" @click.stop />
+            <template v-if="batch.sampleMode === 'grid'">
+              <div class="batch-field">
+                <span class="label-sm">{{ t('imageRegression.arrayMode.gridRows') }}</span>
+                <var-input v-model.number="batch.gridConfig.rows" type="number" size="small" @click.stop />
+              </div>
+              <div class="batch-field">
+                <span class="label-sm">{{ t('imageRegression.arrayMode.gridCols') }}</span>
+                <var-input v-model.number="batch.gridConfig.cols" type="number" size="small" @click.stop />
+              </div>
+              <var-button size="mini" :type="gridSettingBatchId === batch.id ? 'warning' : 'primary'" @click.stop="toggleGridRegionSetting(batch.id)">
+                {{ gridSettingBatchId === batch.id ? t('imageRegression.arrayMode.gridRegionClear') : t('imageRegression.arrayMode.gridRegion') }}
+              </var-button>
+              <var-button v-if="batch.gridConfig.region" size="mini" type="success" @click.stop="generateGridSamples(batch)">
+                {{ t('imageRegression.arrayMode.sampleModeGrid') }}
+              </var-button>
+            </template>
+          </div>
+        </div>
+      </div>
+      <div v-if="batches.length === 0" class="batch-empty">{{ t('imageRegression.arrayMode.addBatch') }}</div>
+    </var-card>
+
     <div class="canvas-container">
       <div v-if="isLoading" class="loading-mask">
         <var-loading type="wave" />
-        <!-- {{ t('imageRegression.loading') }} -->
+      </div>
+      <div v-if="gridSettingBatchId !== null" class="grid-hint">
+        {{ t('imageRegression.arrayMode.gridRegionHint') }}
       </div>
       <canvas
         ref="visibleCanvas"
@@ -39,7 +93,7 @@
       ></canvas>
     </div>
 
-    <var-card class="controls-card" :title="t('imageRegression.sampleListTitle')">
+    <var-card v-if="!arrayMode" class="controls-card" :title="t('imageRegression.sampleListTitle')">
       <var-list>
         <var-cell
           v-for="square in squares"
@@ -64,7 +118,39 @@
       </var-list>
     </var-card>
 
-    <var-card class="controls-card regression-card" :title="t('imageRegression.regressionTitle')">
+    <var-card v-if="arrayMode && hasArrayResults" class="controls-card" :title="t('imageRegression.arrayMode.resultsTitle')">
+      <div v-for="batch in batches" :key="batch.id" class="batch-results-group">
+        <div class="batch-results-header">
+          <div class="batch-color-dot" :style="{ background: batch.color }"></div>
+          <span>{{ batch.label }}</span>
+          <span class="batch-formula-tag">{{ batch.formula }}</span>
+        </div>
+        <var-list v-if="batch.squares.length > 0">
+          <var-cell
+            v-for="square in batch.squares"
+            :key="square.id"
+            border
+            :title="t('imageRegression.sampleLabel', { id: square.id })"
+          >
+            <div class="sample-row">
+              <var-input
+                v-model="square.num"
+                type="number"
+                :placeholder="t('imageRegression.numberPlaceholder')"
+                @keyup.enter="focusNextSample(square.id)"
+                :ref="(el: any) => setSampleInputRef(el, square.id)"
+              />
+              <div class="sample-result">{{ square.result?.toFixed(4) || '-' }}</div>
+              <var-button type="danger" size="small" @click="removeSquareFromBatch(batch.id, square.id)">
+                {{ t('imageRegression.remove') }}
+              </var-button>
+            </div>
+          </var-cell>
+        </var-list>
+      </div>
+    </var-card>
+
+    <var-card v-if="!arrayMode" class="controls-card regression-card" :title="t('imageRegression.regressionTitle')">
       <div class="control-row regression-row" v-if="(props.fullRes && props.fullRes !== 'data:,') || uploadedImg">
         <var-input
           v-model="formula"
@@ -85,6 +171,23 @@
           <var-button type="primary" @click="calculateFormula">{{ t('imageRegression.calculate') }}</var-button>
           <var-button type="success" @click="downloadSamples">{{ t('imageRegression.download') }}</var-button>
         </div>
+      </div>
+    </var-card>
+
+    <var-card v-if="arrayMode" class="controls-card" :title="t('imageRegression.arrayMode.mlAnalysis')">
+      <div class="ml-config-row">
+        <var-select v-model="mlConfig.dimReduction" :options="dimReductionOptions" :placeholder="t('imageRegression.arrayMode.dimReduction')" />
+        <var-select v-model="mlConfig.clustering" :options="clusteringOptions" :placeholder="t('imageRegression.arrayMode.clustering')" />
+        <div v-if="mlConfig.clustering !== 'none'" class="batch-field">
+          <span class="label-sm">{{ t('imageRegression.arrayMode.kClusters') }}</span>
+          <var-slider v-model="mlConfig.kClusters" :min="2" :max="10" track-color="#e5e7eb" />
+        </div>
+        <var-button type="primary" :loading="isMLRunning" :disabled="!hasArrayResults" @click="runMLAnalysis">
+          {{ t('imageRegression.arrayMode.runAnalysis') }}
+        </var-button>
+        <var-button v-if="mlResult" type="success" @click="downloadMLResult">
+          {{ t('imageRegression.arrayMode.downloadML') }}
+        </var-button>
       </div>
     </var-card>
 
@@ -191,6 +294,439 @@ export default defineComponent({
     let currentChartTheme: 'light' | 'dark' = isDark.value ? 'dark' : 'light'
     const sampleInputRefs = ref<Record<number, HTMLElement | null>>({})
     const formulaInputRef = ref<any>(null)
+
+    const BATCH_COLORS = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399', '#9B59B6', '#1ABC9C', '#E74C3C']
+    const arrayMode = ref<boolean>(false)
+    const batches = ref<Batch[]>([])
+    const batchIdCounter = ref<number>(1)
+    const activeBatchId = ref<number | null>(null)
+    const mlConfig = ref<MLAnalysisConfig>({ dimReduction: 'pca', clustering: 'kmeans', kClusters: 3 })
+    const mlResult = ref<MLResult | null>(null)
+    const isMLRunning = ref<boolean>(false)
+    const gridSettingBatchId = ref<number | null>(null)
+    const gridFirstPoint = ref<{ x: number; y: number } | null>(null)
+
+    const activeBatch = computed(() => batches.value.find((b) => b.id === activeBatchId.value) || null)
+    const hasArrayResults = computed(() => batches.value.some((b) => b.squares.some((s) => s.result !== undefined)))
+
+    const dimReductionOptions = computed(() => [
+      { label: t('imageRegression.arrayMode.dimReductionPCA'), value: 'pca' },
+      { label: t('imageRegression.arrayMode.dimReductionLDA'), value: 'lda' },
+    ])
+    const clusteringOptions = computed(() => [
+      { label: t('imageRegression.arrayMode.clusteringNone'), value: 'none' },
+      { label: t('imageRegression.arrayMode.clusteringKMeans'), value: 'kmeans' },
+      { label: t('imageRegression.arrayMode.clusteringHierarchical'), value: 'hierarchical' },
+    ])
+
+    function addBatch() {
+      const id = batchIdCounter.value++
+      const batch: Batch = {
+        id,
+        label: `Batch ${id}`,
+        color: BATCH_COLORS[(id - 1) % BATCH_COLORS.length],
+        sampleMode: 'manual',
+        gridConfig: { rows: 5, cols: 5 },
+        sampleSize: sampleSize.value,
+        randomSeed: randomSeed.value || '42',
+        formula: formula.value || '',
+        squares: [],
+      }
+      batches.value.push(batch)
+      activeBatchId.value = id
+    }
+
+    function removeBatch(id: number) {
+      batches.value = batches.value.filter((b) => b.id !== id)
+      if (activeBatchId.value === id) {
+        activeBatchId.value = batches.value.length > 0 ? batches.value[0].id : null
+      }
+      redrawCanvas()
+    }
+
+    function selectBatch(id: number) {
+      activeBatchId.value = id
+    }
+
+    function toggleGridRegionSetting(batchId: number) {
+      if (gridSettingBatchId.value === batchId) {
+        gridSettingBatchId.value = null
+        gridFirstPoint.value = null
+      } else {
+        gridSettingBatchId.value = batchId
+        gridFirstPoint.value = null
+      }
+    }
+
+    function generateGridSamples(batch: Batch) {
+      const gc = batch.gridConfig
+      if (!gc.region) return
+      const { x, y, width, height } = gc.region
+      const newSquares: SamplePoint[] = []
+      for (let r = 0; r < gc.rows; r++) {
+        for (let c = 0; c < gc.cols; c++) {
+          const sx = x + (c + 0.5) * (width / gc.cols)
+          const sy = y + (r + 0.5) * (height / gc.rows)
+          newSquares.push({
+            id: squareIdCounter.value++,
+            x: sx,
+            y: sy,
+            size: batch.sampleSize,
+          })
+        }
+      }
+      batch.squares = newSquares
+      redrawCanvas()
+    }
+
+    function clearGridRegion(batch: Batch) {
+      batch.gridConfig.region = undefined
+      gridFirstPoint.value = null
+      redrawCanvas()
+    }
+
+    const sampleModeOptions = computed(() => [
+      { label: t('imageRegression.arrayMode.sampleModeManual'), value: 'manual' },
+      { label: t('imageRegression.arrayMode.sampleModeGrid'), value: 'grid' },
+    ])
+
+    function removeSquareFromBatch(batchId: number, squareId: number) {
+      const batch = batches.value.find((b) => b.id === batchId)
+      if (batch) {
+        batch.squares = batch.squares.filter((sq) => sq.id !== squareId)
+        redrawCanvas()
+      }
+    }
+
+    function runAllBatches() {
+      if (!offscreenCanvas || !currentImg.value) return
+      const ctx = offscreenCanvas.getContext('2d')
+      if (!ctx) return
+
+      for (const batch of batches.value) {
+        if (!batch.formula.trim() || batch.squares.length === 0) continue
+        const seed = batch.randomSeed || '42'
+        const random = seedrandom(seed)
+
+        batch.squares = batch.squares.map((square) => {
+          const half = square.size / 2
+          const results: number[] = []
+          let rgbSum = { r: 0, g: 0, b: 0, count: 0 }
+
+          for (let i = 0; i < 10; i++) {
+            const fullX = square.x / scale.value - half / scale.value + random() * (square.size / scale.value)
+            const fullY = square.y / scale.value - half / scale.value + random() * (square.size / scale.value)
+            const pixel = ctx.getImageData(Math.floor(fullX), Math.floor(fullY), 1, 1).data
+            const [r = 0, g = 0, b = 0] = pixel
+            rgbSum.r += r
+            rgbSum.g += g
+            rgbSum.b += b
+            rgbSum.count += 1
+            const R = r / 255
+            const G = g / 255
+            const B = b / 255
+            try {
+              const calculate = new Function('R', 'G', 'B', `return ${batch.formula}`)
+              const result = calculate(R, G, B)
+              if (isFinite(result)) results.push(result)
+            } catch { /* skip invalid formula */ }
+          }
+
+          const mean = results.length > 0 ? results.reduce((a, b) => a + b) / results.length : undefined
+          const stdDev = results.length > 0 ? Math.sqrt(results.reduce((acc, val) => acc + Math.pow(val - mean!, 2), 0) / results.length) : undefined
+          const avgRGB = rgbSum.count > 0 ? { r: +(rgbSum.r / rgbSum.count).toFixed(2), g: +(rgbSum.g / rgbSum.count).toFixed(2), b: +(rgbSum.b / rgbSum.count).toFixed(2) } : undefined
+          return { ...square, result: mean, stdDev, avgRGB }
+        })
+      }
+      redrawCanvas()
+    }
+
+    async function runMLAnalysis() {
+      isMLRunning.value = true
+      try {
+        const allPoints: { result: number; batchId: number; batchLabel: string; sampleId: number }[] = []
+        for (const batch of batches.value) {
+          for (const sq of batch.squares) {
+            if (sq.result !== undefined) {
+              allPoints.push({ result: sq.result, batchId: batch.id, batchLabel: batch.label, sampleId: sq.id })
+            }
+          }
+        }
+        if (allPoints.length < 2) {
+          isMLRunning.value = false
+          return
+        }
+
+        const data = allPoints.map((p) => [p.result])
+        let projected: number[][] = []
+
+        if (mlConfig.value.dimReduction === 'pca') {
+          const { PCA } = await import('ml-pca')
+          const pca = new PCA(data)
+          const nComp = Math.min(2, data[0].length)
+          projected = pca.predict(data, { nComponents: nComp }) as number[][]
+          const variance = pca.getExplainedVariance()
+          mlResult.value = {
+            points: allPoints.map((p, i) => ({
+              x: projected[i][0] ?? 0,
+              y: projected[i][1] ?? 0,
+              batchId: p.batchId,
+              batchLabel: p.batchLabel,
+              clusterLabel: 0,
+              sampleId: p.sampleId,
+            })),
+            explainedVariance: variance,
+          }
+        } else {
+          const labels = allPoints.map((p) => p.batchId)
+          const uniqueLabels = [...new Set(labels)]
+          if (uniqueLabels.length < 2) {
+            projected = data.map((d) => [d[0], 0])
+          } else {
+            projected = ldaProject(data, labels)
+          }
+          mlResult.value = {
+            points: allPoints.map((p, i) => ({
+              x: projected[i][0] ?? 0,
+              y: projected[i][1] ?? 0,
+              batchId: p.batchId,
+              batchLabel: p.batchLabel,
+              clusterLabel: 0,
+              sampleId: p.sampleId,
+            })),
+          }
+        }
+
+        if (mlConfig.value.clustering !== 'none' && mlResult.value.points.length >= mlConfig.value.kClusters) {
+          const clusterData = mlResult.value.points.map((p) => [p.x, p.y])
+          let clusterLabels: number[] = []
+
+          if (mlConfig.value.clustering === 'kmeans') {
+            const { kMeans } = await import('ml-kmeans')
+            const result = kMeans(clusterData, mlConfig.value.kClusters)
+            clusterLabels = result.clusters
+          } else {
+            const { agnes } = await import('ml-hclust')
+            const tree = agnes(clusterData, { method: 'ward' })
+            const cutResult = tree.cut(mlConfig.value.kClusters)
+            clusterLabels = cutResult.map((cluster: any) => cluster.index ?? 0)
+          }
+
+          mlResult.value.points = mlResult.value.points.map((p, i) => ({
+            ...p,
+            clusterLabel: clusterLabels[i] ?? 0,
+          }))
+        }
+
+        updateMLChart()
+      } catch (e) {
+        console.error('ML analysis failed:', e)
+      } finally {
+        isMLRunning.value = false
+      }
+    }
+
+    function ldaProject(data: number[][], labels: number[]): number[][] {
+      const n = data.length
+      const dim = data[0].length
+      const uniqueLabels = [...new Set(labels)]
+      const nClasses = uniqueLabels.length
+      if (nClasses < 2) return data.map((d) => [d[0], 0])
+
+      const globalMean = new Array(dim).fill(0)
+      for (const d of data) {
+        for (let j = 0; j < dim; j++) globalMean[j] += d[j]
+      }
+      for (let j = 0; j < dim; j++) globalMean[j] /= n
+
+      const classMeans = new Map<number, number[]>()
+      const classCounts = new Map<number, number>()
+      for (const label of uniqueLabels) {
+        classMeans.set(label, new Array(dim).fill(0))
+        classCounts.set(label, 0)
+      }
+      for (let i = 0; i < n; i++) {
+        const label = labels[i]
+        const cm = classMeans.get(label)!
+        for (let j = 0; j < dim; j++) cm[j] += data[i][j]
+        classCounts.set(label, classCounts.get(label)! + 1)
+      }
+      for (const label of uniqueLabels) {
+        const cm = classMeans.get(label)!
+        const cnt = classCounts.get(label)!
+        for (let j = 0; j < dim; j++) cm[j] /= cnt
+      }
+
+      const Sw = Array.from({ length: dim }, () => new Array(dim).fill(0))
+      const Sb = Array.from({ length: dim }, () => new Array(dim).fill(0))
+
+      for (let i = 0; i < n; i++) {
+        const label = labels[i]
+        const cm = classMeans.get(label)!
+        for (let r = 0; r < dim; r++) {
+          for (let c = 0; c < dim; c++) {
+            Sw[r][c] += (data[i][r] - cm[r]) * (data[i][c] - cm[c])
+          }
+        }
+      }
+
+      for (const label of uniqueLabels) {
+        const cm = classMeans.get(label)!
+        const cnt = classCounts.get(label)!
+        for (let r = 0; r < dim; r++) {
+          for (let c = 0; c < dim; c++) {
+            Sb[r][c] += cnt * (cm[r] - globalMean[r]) * (cm[c] - globalMean[c])
+          }
+        }
+      }
+
+      const nProj = Math.min(nClasses - 1, dim, 2)
+      const SwInv = invertMatrix(Sw)
+      if (!SwInv) return data.map((d) => [d[0], 0])
+
+      const M = multiplyMatrix(SwInv, Sb)
+      const eigenvectors = powerIteration(M, nProj)
+
+      return data.map((d) => {
+        const point: number[] = []
+        for (let k = 0; k < nProj; k++) {
+          let val = 0
+          for (let j = 0; j < dim; j++) val += d[j] * eigenvectors[k][j]
+          point.push(val)
+        }
+        while (point.length < 2) point.push(0)
+        return point
+      })
+    }
+
+    function invertMatrix(mat: number[][]): number[][] | null {
+      const n = mat.length
+      const aug = mat.map((row, i) => [...row, ...Array.from({ length: n }, (_, j) => (i === j ? 1 : 0))])
+      for (let i = 0; i < n; i++) {
+        let maxRow = i
+        for (let k = i + 1; k < n; k++) if (Math.abs(aug[k][i]) > Math.abs(aug[maxRow][i])) maxRow = k
+        ;[aug[i], aug[maxRow]] = [aug[maxRow], aug[i]]
+        if (Math.abs(aug[i][i]) < 1e-10) return null
+        const pivot = aug[i][i]
+        for (let j = 0; j < 2 * n; j++) aug[i][j] /= pivot
+        for (let k = 0; k < n; k++) {
+          if (k === i) continue
+          const factor = aug[k][i]
+          for (let j = 0; j < 2 * n; j++) aug[k][j] -= factor * aug[i][j]
+        }
+      }
+      return aug.map((row) => row.slice(n))
+    }
+
+    function multiplyMatrix(a: number[][], b: number[][]): number[][] {
+      const n = a.length
+      const m = b[0].length
+      const k = b.length
+      const result = Array.from({ length: n }, () => new Array(m).fill(0))
+      for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) for (let p = 0; p < k; p++) result[i][j] += a[i][p] * b[p][j]
+      return result
+    }
+
+    function powerIteration(mat: number[][], nVectors: number): number[][] {
+      const n = mat.length
+      const vectors: number[][] = []
+      for (let v = 0; v < nVectors; v++) {
+        let vec = Array.from({ length: n }, () => Math.random() - 0.5)
+        for (let iter = 0; iter < 100; iter++) {
+          const newVec = new Array(n).fill(0)
+          for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) newVec[i] += mat[i][j] * vec[j]
+          const norm = Math.sqrt(newVec.reduce((s, x) => s + x * x, 0))
+          if (norm > 0) for (let i = 0; i < n; i++) newVec[i] /= norm
+          vec = newVec
+        }
+        vectors.push(vec)
+      }
+      return vectors
+    }
+
+    function updateMLChart() {
+      const inst = chartInstance ?? initChartWithRetry()
+      if (!inst || !mlResult.value) return
+
+      const batchesMap = new Map<number, { label: string; color: string }>()
+      for (const batch of batches.value) batchesMap.set(batch.id, { label: batch.label, color: batch.color })
+
+      const clusterColors = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399', '#9B59B6', '#1ABC9C', '#E74C3C']
+      const seriesMap = new Map<string, echarts.SeriesOption>()
+
+      for (const pt of mlResult.value.points) {
+        const batchInfo = batchesMap.get(pt.batchId)
+        const batchName = batchInfo?.label ?? `Batch ${pt.batchId}`
+        const clusterName = mlConfig.value.clustering !== 'none'
+          ? t('imageRegression.arrayMode.clusterLabel', { id: pt.clusterLabel })
+          : batchName
+
+        if (!seriesMap.has(clusterName)) {
+          seriesMap.set(clusterName, {
+            name: clusterName,
+            type: 'scatter',
+            data: [],
+            symbolSize: 10,
+            itemStyle: {
+              color: mlConfig.value.clustering !== 'none'
+                ? clusterColors[pt.clusterLabel % clusterColors.length]
+                : (batchInfo?.color ?? '#409EFF'),
+            },
+          })
+        }
+        const series = seriesMap.get(clusterName)! as any
+        series.data.push([pt.x, pt.y])
+      }
+
+      const titleText = mlConfig.value.dimReduction === 'pca'
+        ? t('imageRegression.arrayMode.chart.mlScatter') + ' (PCA)'
+        : t('imageRegression.arrayMode.chart.mlScatter') + ' (LDA)'
+
+      const option: echarts.EChartsOption = {
+        title: { text: titleText, left: 'center', top: 8 },
+        legend: { top: 36 },
+        tooltip: {
+          trigger: 'item',
+          formatter: (params: any) => {
+            const pt = params.data
+            return `(${pt[0]?.toFixed(3)}, ${pt[1]?.toFixed(3)})`
+          },
+        },
+        grid: { left: 60, right: 20, top: 70, bottom: 50 },
+        xAxis: {
+          type: 'value',
+          name: mlConfig.value.dimReduction === 'pca'
+            ? t('imageRegression.arrayMode.chart.pcAxis', { num: 1 })
+            : t('imageRegression.arrayMode.chart.ldaAxis', { num: 1 }),
+        },
+        yAxis: {
+          type: 'value',
+          name: mlConfig.value.dimReduction === 'pca'
+            ? t('imageRegression.arrayMode.chart.pcAxis', { num: 2 })
+            : t('imageRegression.arrayMode.chart.ldaAxis', { num: 2 }),
+        },
+        series: Array.from(seriesMap.values()),
+      }
+
+      inst.setOption(option, true)
+      inst.resize()
+    }
+
+    function downloadMLResult() {
+      if (!mlResult.value) return
+      const header = ['sampleId', 'batchId', 'batchLabel', 'x', 'y', 'cluster']
+      const lines = [header.join(',')]
+      for (const pt of mlResult.value.points) {
+        lines.push([pt.sampleId, pt.batchId, pt.batchLabel, pt.x.toFixed(6), pt.y.toFixed(6), pt.clusterLabel].join(','))
+      }
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = t('imageRegression.arrayMode.mlCsvName')
+      link.click()
+      URL.revokeObjectURL(url)
+    }
     const clamp = (val: number, min: number, max: number) => Math.min(max, Math.max(min, val))
     const handleSampleSizeChange = (val: number | number[]) => {
       const raw = Array.isArray(val) ? val[0] : val
@@ -285,12 +821,41 @@ export default defineComponent({
       if (!ctx) return
       ctx.clearRect(0, 0, visibleCanvas.value.width, visibleCanvas.value.height)
       ctx.drawImage(currentImg.value, 0, 0, visibleCanvas.value.width, visibleCanvas.value.height)
-      squares.value.forEach((square) => {
-        ctx.strokeStyle = 'blue'
-        ctx.lineWidth = 2
-        const half = square.size / 2
-        ctx.strokeRect(square.x - half, square.y - half, square.size, square.size)
-      })
+
+      if (arrayMode.value) {
+        for (const batch of batches.value) {
+          ctx.strokeStyle = batch.color
+          ctx.lineWidth = 2
+          for (const square of batch.squares) {
+            const half = square.size / 2
+            ctx.strokeRect(square.x - half, square.y - half, square.size, square.size)
+          }
+          if (batch.gridConfig.region) {
+            const r = batch.gridConfig.region
+            ctx.strokeStyle = batch.color
+            ctx.lineWidth = 1
+            ctx.setLineDash([4, 4])
+            ctx.strokeRect(r.x, r.y, r.width, r.height)
+            ctx.setLineDash([])
+            ctx.fillStyle = batch.color + '20'
+            ctx.fillRect(r.x, r.y, r.width, r.height)
+          }
+        }
+        if (gridFirstPoint.value) {
+          ctx.fillStyle = 'red'
+          ctx.beginPath()
+          ctx.arc(gridFirstPoint.value.x, gridFirstPoint.value.y, 4, 0, Math.PI * 2)
+          ctx.fill()
+        }
+      } else {
+        squares.value.forEach((square) => {
+          ctx.strokeStyle = 'blue'
+          ctx.lineWidth = 2
+          const half = square.size / 2
+          ctx.strokeRect(square.x - half, square.y - half, square.size, square.size)
+        })
+      }
+
       if (previewX.value !== null && previewY.value !== null) {
         ctx.strokeStyle = 'green'
         ctx.lineWidth = 2
@@ -334,6 +899,39 @@ export default defineComponent({
       const rect = visibleCanvas.value.getBoundingClientRect()
       const x = ((event.clientX - rect.left) / rect.width) * visibleCanvas.value.width
       const y = ((event.clientY - rect.top) / rect.height) * visibleCanvas.value.height
+
+      if (arrayMode.value) {
+        if (gridSettingBatchId.value !== null) {
+          const batch = batches.value.find((b) => b.id === gridSettingBatchId.value)
+          if (!batch) return
+          if (!gridFirstPoint.value) {
+            gridFirstPoint.value = { x, y }
+          } else {
+            const fp = gridFirstPoint.value
+            batch.gridConfig.region = {
+              x: Math.min(fp.x, x),
+              y: Math.min(fp.y, y),
+              width: Math.abs(x - fp.x),
+              height: Math.abs(y - fp.y),
+            }
+            gridSettingBatchId.value = null
+            gridFirstPoint.value = null
+          }
+          redrawCanvas()
+          return
+        }
+
+        const batch = activeBatch.value
+        if (!batch) return
+        batch.squares.push({
+          id: squareIdCounter.value++,
+          x,
+          y,
+          size: batch.sampleSize,
+        })
+        redrawCanvas()
+        return
+      }
 
       squares.value.push({
         id: squareIdCounter.value++,
@@ -755,6 +1353,29 @@ export default defineComponent({
       t,
       formulaRules,
       isFormulaValid,
+      arrayMode,
+      batches,
+      activeBatchId,
+      activeBatch,
+      mlConfig,
+      mlResult,
+      isMLRunning,
+      gridSettingBatchId,
+      gridFirstPoint,
+      hasArrayResults,
+      dimReductionOptions,
+      clusteringOptions,
+      sampleModeOptions,
+      addBatch,
+      removeBatch,
+      selectBatch,
+      toggleGridRegionSetting,
+      generateGridSamples,
+      clearGridRegion,
+      removeSquareFromBatch,
+      runAllBatches,
+      runMLAnalysis,
+      downloadMLResult,
     }
   },
 })
@@ -850,5 +1471,123 @@ canvas {
 .chart {
   height: 400px;
   width: 100%;
+}
+
+.array-mode-toggle {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.batch-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.batch-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.batch-item.active {
+  border-color: var(--color-primary, #2563eb);
+}
+
+.batch-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.batch-color-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.batch-name-input {
+  flex: 1;
+}
+
+.batch-config {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.batch-config-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  align-items: center;
+}
+
+.batch-formula-input {
+  min-width: 140px;
+}
+
+.batch-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.label-sm {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.batch-empty {
+  text-align: center;
+  color: #9ca3af;
+  padding: 16px;
+}
+
+.batch-results-group {
+  margin-bottom: 12px;
+}
+
+.batch-results-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.batch-formula-tag {
+  font-size: 12px;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.grid-hint {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.ml-config-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  align-items: center;
 }
 </style>
