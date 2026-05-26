@@ -3,7 +3,8 @@
     <var-card class="controls-card" :title="t('imageRegression.samplingTitle')">
       <template v-if="(props.fullRes && props.fullRes !== 'data:,') || uploadedImg">
         <div class="array-mode-toggle">
-          <var-switch v-model="arrayMode" :label="t('imageRegression.arrayMode.toggle')" />
+          <span class="toggle-label">{{ t('imageRegression.arrayMode.toggle') }}</span>
+          <var-switch v-model="arrayMode" />
         </div>
         <div class="control-row" v-if="!arrayMode">
           <div class="control-item" style="gap: 16px;">
@@ -1477,6 +1478,12 @@ canvas {
   display: flex;
   align-items: center;
   margin-bottom: 12px;
+}
+
+.toggle-label {
+  font-size: 14px;
+  font-weight: 500;
+  margin-right: 8px;
 }
 
 .batch-actions {
