@@ -435,43 +435,46 @@ export default defineComponent({
           return
         }
 
-        const numBatchSum = new Map<number, Map<number, number>>()
-        const numBatchCount = new Map<number, Map<number, number>>()
+        const batchIds = activeBatches.map((b) => b.id)
+        const batchGroups = new Map<number, Map<number, number[]>>()
         for (const batch of activeBatches) {
+          const groups = new Map<number, number[]>()
           for (const sq of batch.squares) {
             if (sq.result === undefined || sq.num === undefined || isNaN(Number(sq.num))) continue
             const num = Number(sq.num)
-            if (!numBatchSum.has(num)) numBatchSum.set(num, new Map())
-            if (!numBatchCount.has(num)) numBatchCount.set(num, new Map())
-            const sumMap = numBatchSum.get(num)!
-            const cntMap = numBatchCount.get(num)!
-            sumMap.set(batch.id, (sumMap.get(batch.id) ?? 0) + sq.result)
-            cntMap.set(batch.id, (cntMap.get(batch.id) ?? 0) + 1)
+            if (!groups.has(num)) groups.set(num, [])
+            groups.get(num)!.push(sq.result)
           }
+          batchGroups.set(batch.id, groups)
         }
 
-        const sortedNums = [...numBatchSum.keys()].sort((a, b) => a - b)
-        const batchIds = activeBatches.map((b) => b.id)
-        const missingInfo: string[] = []
-        const alignedNums: number[] = []
+        const baseBatchId = batchIds[0]
+        const baseGroups = batchGroups.get(baseBatchId)!
         const data: number[][] = []
+        const pointNums: number[] = []
+        const pointBatchResults: Record<number, number>[] = []
 
-        for (const num of sortedNums) {
-          const sumRow = numBatchSum.get(num)!
-          const cntRow = numBatchCount.get(num)!
-          const missing = batchIds.filter((bid) => !cntRow.has(bid))
-          if (missing.length > 0) {
-            const missingLabels = missing.map((bid) => activeBatches.find((b) => b.id === bid)?.label ?? bid)
-            missingInfo.push(`${num}: ${missingLabels.join(', ')}`)
-            continue
+        for (const [num, results] of baseGroups) {
+          for (let idx = 0; idx < results.length; idx++) {
+            const features: number[] = []
+            const batchResults: Record<number, number> = {}
+            let valid = true
+            for (const bid of batchIds) {
+              const group = batchGroups.get(bid)?.get(num)
+              if (!group || idx >= group.length) {
+                valid = false
+                break
+              }
+              features.push(group[idx])
+              batchResults[bid] = group[idx]
+            }
+            if (!valid) continue
+            data.push(features)
+            pointNums.push(num)
+            pointBatchResults.push(batchResults)
           }
-          alignedNums.push(num)
-          data.push(batchIds.map((bid) => sumRow.get(bid)! / cntRow.get(bid)!))
         }
 
-        if (missingInfo.length > 0) {
-          console.warn('Incomplete data skipped:', missingInfo.join(' | '))
-        }
         if (data.length < 2) {
           isMLRunning.value = false
           return
@@ -489,23 +492,16 @@ export default defineComponent({
           )
           const variance = pca.getExplainedVariance()
           mlResult.value = {
-            points: alignedNums.map((num, i) => ({
+            points: pointNums.map((num, i) => ({
               x: projected[i][0] ?? 0,
               y: projected[i][1] ?? 0,
               num,
-              batchResults: (() => {
-                const row: Record<number, number> = {}
-                const sumRow = numBatchSum.get(num)!
-                const cntRow = numBatchCount.get(num)!
-                for (const bid of batchIds) row[bid] = sumRow.get(bid)! / cntRow.get(bid)!
-                return row
-              })(),
-              clusterLabel: 0,
+              batchResults: pointBatchResults[i],
             })),
             explainedVariance: variance,
           }
         } else {
-          const labels = alignedNums
+          const labels = pointNums
           const uniqueLabels = [...new Set(labels)]
           if (uniqueLabels.length < 2) {
             projected = data.map((d) => [d[0], 0])
@@ -513,46 +509,13 @@ export default defineComponent({
             projected = ldaProject(data, labels)
           }
           mlResult.value = {
-            points: alignedNums.map((num, i) => ({
+            points: pointNums.map((num, i) => ({
               x: projected[i][0] ?? 0,
               y: projected[i][1] ?? 0,
               num,
-              batchResults: (() => {
-                const row: Record<number, number> = {}
-                const sumRow = numBatchSum.get(num)!
-                const cntRow = numBatchCount.get(num)!
-                for (const bid of batchIds) row[bid] = sumRow.get(bid)! / cntRow.get(bid)!
-                return row
-              })(),
-              clusterLabel: 0,
+              batchResults: pointBatchResults[i],
             })),
           }
-        }
-
-        if (mlConfig.value.clustering !== 'none' && mlResult.value.points.length >= mlConfig.value.kClusters) {
-          const clusterData = mlResult.value.points.map((p) => [p.x, p.y])
-          let clusterLabels: number[] = []
-
-          if (mlConfig.value.clustering === 'kmeans') {
-            const { kMeans } = await import('ml-kmeans')
-            const result = kMeans(clusterData, mlConfig.value.kClusters)
-            clusterLabels = result.clusters
-          } else {
-            const { agnes } = await import('ml-hclust')
-            const tree = agnes(clusterData, { method: 'ward' })
-            const grouped = tree.group(mlConfig.value.kClusters)
-            clusterLabels = new Array(clusterData.length).fill(0)
-            grouped.children.forEach((cluster: any, clusterIdx: number) => {
-              for (const idx of cluster.indices()) {
-                clusterLabels[idx] = clusterIdx
-              }
-            })
-          }
-
-          mlResult.value.points = mlResult.value.points.map((p, i) => ({
-            ...p,
-            clusterLabel: clusterLabels[i] ?? 0,
-          }))
         }
 
         updateMLChart()
