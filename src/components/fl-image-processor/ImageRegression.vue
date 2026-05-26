@@ -945,18 +945,39 @@ export default defineComponent({
       sampleInputRefs.value[id] = el ? el.$el?.querySelector?.('input') ?? el.$el : null
     }
 
-    function focusNextSample(id: number) {
-      const idx = squares.value.findIndex((sq) => sq.id === id)
-      if (idx === -1) return
-      const next = squares.value[idx + 1]?.id
-      if (!next) return
+    function focusInput(id: number) {
       nextTick(() => {
-        const el = sampleInputRefs.value[next]
+        const el = sampleInputRefs.value[id]
         if (el) {
           ;(el as HTMLElement).focus()
           ;(el as HTMLInputElement).select?.()
         }
       })
+    }
+
+    function focusNextSample(id: number) {
+      const idx = squares.value.findIndex((sq) => sq.id === id)
+      if (idx !== -1) {
+        const next = squares.value[idx + 1]?.id
+        if (next) focusInput(next)
+        return
+      }
+      for (let bi = 0; bi < batches.value.length; bi++) {
+        const batch = batches.value[bi]
+        const si = batch.squares.findIndex((sq) => sq.id === id)
+        if (si === -1) continue
+        if (si + 1 < batch.squares.length) {
+          focusInput(batch.squares[si + 1].id)
+          return
+        }
+        for (let bj = bi + 1; bj < batches.value.length; bj++) {
+          if (batches.value[bj].squares.length > 0) {
+            focusInput(batches.value[bj].squares[0].id)
+            return
+          }
+        }
+        return
+      }
     }
 
     async function calculateFormula() {
