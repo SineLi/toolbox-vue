@@ -816,13 +816,20 @@ export default defineComponent({
       ctx.clearRect(0, 0, visibleCanvas.value.width, visibleCanvas.value.height)
       ctx.drawImage(currentImg.value, 0, 0, visibleCanvas.value.width, visibleCanvas.value.height)
 
+      ctx.font = 'bold 12px sans-serif'
+      ctx.textBaseline = 'bottom'
+
       if (arrayMode.value) {
         for (const batch of batches.value) {
           ctx.strokeStyle = batch.color
+          ctx.fillStyle = batch.color
           ctx.lineWidth = 2
           for (const square of batch.squares) {
             const half = square.size / 2
             ctx.strokeRect(square.x - half, square.y - half, square.size, square.size)
+            if (square.num) {
+              ctx.fillText(square.num, square.x + half + 2, square.y - half)
+            }
           }
           if (batch.gridConfig.region) {
             const r = batch.gridConfig.region
@@ -842,11 +849,15 @@ export default defineComponent({
           ctx.fill()
         }
       } else {
+        ctx.strokeStyle = 'blue'
+        ctx.fillStyle = 'blue'
+        ctx.lineWidth = 2
         squares.value.forEach((square) => {
-          ctx.strokeStyle = 'blue'
-          ctx.lineWidth = 2
           const half = square.size / 2
           ctx.strokeRect(square.x - half, square.y - half, square.size, square.size)
+          if (square.num) {
+            ctx.fillText(square.num, square.x + half + 2, square.y - half)
+          }
         })
       }
 
@@ -1300,6 +1311,9 @@ export default defineComponent({
     watch(locale, () => {
       updateChart()
     })
+
+    watch(squares, () => { redrawCanvas() }, { deep: true })
+    watch(batches, () => { redrawCanvas() }, { deep: true })
 
     onUnmounted(() => {
       isLoading.value = true
