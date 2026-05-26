@@ -1478,8 +1478,8 @@ canvas {
 .batch-item {
   border: 1px solid #e5e7eb;
   border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 8px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
   cursor: pointer;
   transition: border-color 0.2s;
 }
@@ -1491,13 +1491,13 @@ canvas {
 .batch-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .batch-color-dot {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -1509,24 +1509,24 @@ canvas {
 .batch-config {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .batch-config-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 8px;
-  align-items: center;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  align-items: end;
 }
 
 .batch-formula-input {
-  min-width: 140px;
+  min-width: 130px;
 }
 
 .batch-field {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .label-sm {
