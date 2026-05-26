@@ -101,7 +101,7 @@
     <var-card v-if="arrayMode && hasArraySamples" class="controls-card" :title="t('imageRegression.arrayMode.resultsTitle')">
       <div class="batch-fill-toggle">
         <span class="label-sm">{{ t('imageRegression.arrayMode.batchFill') }}</span>
-        <var-switch v-model="batchFillMode" size="small" />
+        <var-switch v-model="batchFillMode" />
       </div>
       <div v-for="batch in batches" :key="batch.id" class="batch-results-group">
         <div class="batch-results-header">
