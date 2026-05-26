@@ -41,36 +41,20 @@
       <div v-for="batch in batches" :key="batch.id" class="batch-item" :class="{ active: activeBatchId === batch.id }" @click="selectBatch(batch.id)">
         <div class="batch-header">
           <div class="batch-color-dot" :style="{ background: batch.color }"></div>
-          <var-input v-model="batch.label" size="small" :placeholder="t('imageRegression.arrayMode.batchNamePlaceholder')" class="batch-name-input" @click.stop />
+          <var-input v-model="batch.label" size="small" :placeholder="t('imageRegression.arrayMode.batchNamePlaceholder')" class="batch-name-input" />
           <var-button type="danger" size="mini" @click.stop="removeBatch(batch.id)">{{ t('imageRegression.arrayMode.removeBatch') }}</var-button>
         </div>
         <div class="batch-config">
           <div class="batch-config-row">
-            <var-input v-model="batch.formula" size="small" :placeholder="t('imageRegression.arrayMode.batchFormulaPlaceholder')" class="batch-formula-input" @click.stop />
+            <var-input v-model="batch.formula" size="small" :placeholder="t('imageRegression.arrayMode.batchFormulaPlaceholder')" class="batch-formula-input" />
             <div class="batch-field">
               <span class="label-sm">{{ t('imageRegression.arrayMode.sampleSize') }}</span>
-              <var-input v-model.number="batch.sampleSize" type="number" size="small" @click.stop />
+              <var-input v-model.number="batch.sampleSize" type="number" size="small" />
             </div>
             <div class="batch-field">
               <span class="label-sm">{{ t('imageRegression.arrayMode.randomSeed') }}</span>
-              <var-input v-model="batch.randomSeed" size="small" :placeholder="t('imageRegression.arrayMode.seedPlaceholder')" @click.stop />
+              <var-input v-model="batch.randomSeed" size="small" :placeholder="t('imageRegression.arrayMode.seedPlaceholder')" />
             </div>
-          </div>
-          <div class="batch-config-row">
-            <div class="batch-field">
-              <span class="label-sm">{{ t('imageRegression.arrayMode.gridRows') }}</span>
-              <var-input v-model.number="batch.gridConfig.rows" type="number" size="small" @click.stop />
-            </div>
-            <div class="batch-field">
-              <span class="label-sm">{{ t('imageRegression.arrayMode.gridCols') }}</span>
-              <var-input v-model.number="batch.gridConfig.cols" type="number" size="small" @click.stop />
-            </div>
-            <var-button size="mini" :type="gridSettingBatchId === batch.id ? 'warning' : 'primary'" @click.stop="toggleGridRegionSetting(batch.id)">
-              {{ gridSettingBatchId === batch.id ? t('imageRegression.arrayMode.gridRegionClear') : t('imageRegression.arrayMode.gridRegion') }}
-            </var-button>
-            <var-button v-if="batch.gridConfig.region" size="mini" type="success" @click.stop="generateGridSamples(batch)">
-              {{ t('imageRegression.arrayMode.sampleModeGrid') }}
-            </var-button>
           </div>
         </div>
       </div>
@@ -80,9 +64,6 @@
     <div class="canvas-container">
       <div v-if="isLoading" class="loading-mask">
         <var-loading type="wave" />
-      </div>
-      <div v-if="gridSettingBatchId !== null" class="grid-hint">
-        {{ t('imageRegression.arrayMode.gridRegionHint') }}
       </div>
       <canvas
         ref="visibleCanvas"
@@ -130,7 +111,7 @@
         </div>
         <var-list v-if="batch.squares.length > 0">
           <var-cell
-            v-for="(square, sqIdx) in batch.squares"
+            v-for="square in batch.squares"
             :key="square.id"
             border
             :title="t('imageRegression.sampleLabel', { id: square.id })"
@@ -141,7 +122,6 @@
                 type="number"
                 :placeholder="t('imageRegression.numberPlaceholder')"
                 @keyup.enter="focusNextSample(square.id)"
-                @input="(v: string) => syncNumAcrossBatches(batch.id, sqIdx, v)"
                 :ref="(el: any) => setSampleInputRef(el, square.id)"
               />
               <div class="sample-result">{{ square.result?.toFixed(4) || '-' }}</div>
@@ -229,16 +209,10 @@ export default defineComponent({
       stdDev?: number
       avgRGB?: { r: number; g: number; b: number }
     }
-    interface BatchGridConfig {
-      rows: number
-      cols: number
-      region?: { x: number; y: number; width: number; height: number }
-    }
     interface Batch {
       id: number
       label: string
       color: string
-      gridConfig: BatchGridConfig
       sampleSize: number
       randomSeed: string
       formula: string
@@ -294,8 +268,6 @@ export default defineComponent({
     const mlConfig = ref<MLAnalysisConfig>({ dimReduction: 'pca' })
     const mlResult = ref<MLResult | null>(null)
     const isMLRunning = ref<boolean>(false)
-    const gridSettingBatchId = ref<number | null>(null)
-    const gridFirstPoint = ref<{ x: number; y: number } | null>(null)
     const batchFillMode = ref<boolean>(false)
 
     const activeBatch = computed(() => batches.value.find((b) => b.id === activeBatchId.value) || null)
@@ -313,7 +285,6 @@ export default defineComponent({
         id,
         label: `Batch ${id}`,
         color: BATCH_COLORS[(id - 1) % BATCH_COLORS.length],
-        gridConfig: { rows: 5, cols: 5 },
         sampleSize: sampleSize.value,
         randomSeed: randomSeed.value || '42',
         formula: formula.value || '',
@@ -335,58 +306,11 @@ export default defineComponent({
       activeBatchId.value = id
     }
 
-    function toggleGridRegionSetting(batchId: number) {
-      if (gridSettingBatchId.value === batchId) {
-        gridSettingBatchId.value = null
-        gridFirstPoint.value = null
-      } else {
-        gridSettingBatchId.value = batchId
-        gridFirstPoint.value = null
-      }
-    }
-
-    function generateGridSamples(batch: Batch) {
-      const gc = batch.gridConfig
-      if (!gc.region) return
-      const { x, y, width, height } = gc.region
-      const newSquares: SamplePoint[] = []
-      for (let r = 0; r < gc.rows; r++) {
-        for (let c = 0; c < gc.cols; c++) {
-          const sx = x + (c + 0.5) * (width / gc.cols)
-          const sy = y + (r + 0.5) * (height / gc.rows)
-          newSquares.push({
-            id: squareIdCounter.value++,
-            x: sx,
-            y: sy,
-            size: batch.sampleSize,
-          })
-        }
-      }
-      batch.squares = newSquares
-      redrawCanvas()
-    }
-
-    function clearGridRegion(batch: Batch) {
-      batch.gridConfig.region = undefined
-      gridFirstPoint.value = null
-      redrawCanvas()
-    }
-
     function removeSquareFromBatch(batchId: number, squareId: number) {
       const batch = batches.value.find((b) => b.id === batchId)
       if (batch) {
         batch.squares = batch.squares.filter((sq) => sq.id !== squareId)
         redrawCanvas()
-      }
-    }
-
-    function syncNumAcrossBatches(sourceBatchId: number, sourceIndex: number, value: string) {
-      if (!batchFillMode.value) return
-      for (const batch of batches.value) {
-        if (batch.id === sourceBatchId) continue
-        if (sourceIndex < batch.squares.length) {
-          batch.squares[sourceIndex].num = value
-        }
       }
     }
 
@@ -836,22 +760,6 @@ export default defineComponent({
               ctx.fillText(square.num, square.x + half + 2, square.y - half)
             }
           }
-          if (batch.gridConfig.region) {
-            const r = batch.gridConfig.region
-            ctx.strokeStyle = batch.color
-            ctx.lineWidth = 1
-            ctx.setLineDash([4, 4])
-            ctx.strokeRect(r.x, r.y, r.width, r.height)
-            ctx.setLineDash([])
-            ctx.fillStyle = batch.color + '20'
-            ctx.fillRect(r.x, r.y, r.width, r.height)
-          }
-        }
-        if (gridFirstPoint.value) {
-          ctx.fillStyle = 'red'
-          ctx.beginPath()
-          ctx.arc(gridFirstPoint.value.x, gridFirstPoint.value.y, 4, 0, Math.PI * 2)
-          ctx.fill()
         }
       } else {
         ctx.strokeStyle = 'blue'
@@ -911,26 +819,6 @@ export default defineComponent({
       const y = ((event.clientY - rect.top) / rect.height) * visibleCanvas.value.height
 
       if (arrayMode.value) {
-        if (gridSettingBatchId.value !== null) {
-          const batch = batches.value.find((b) => b.id === gridSettingBatchId.value)
-          if (!batch) return
-          if (!gridFirstPoint.value) {
-            gridFirstPoint.value = { x, y }
-          } else {
-            const fp = gridFirstPoint.value
-            batch.gridConfig.region = {
-              x: Math.min(fp.x, x),
-              y: Math.min(fp.y, y),
-              width: Math.abs(x - fp.x),
-              height: Math.abs(y - fp.y),
-            }
-            gridSettingBatchId.value = null
-            gridFirstPoint.value = null
-          }
-          redrawCanvas()
-          return
-        }
-
         const batch = activeBatch.value
         if (!batch) return
         batch.squares.push({
@@ -1339,7 +1227,25 @@ export default defineComponent({
     })
 
     watch(squares, () => { redrawCanvas() }, { deep: true })
-    watch(batches, () => { redrawCanvas() }, { deep: true })
+    let syncingNum = false
+    watch(batches, () => {
+      redrawCanvas()
+      if (batchFillMode.value && !syncingNum) {
+        syncingNum = true
+        const src = batches.value[0]
+        if (src) {
+          for (let i = 0; i < src.squares.length; i++) {
+            const val = src.squares[i].num
+            for (let b = 1; b < batches.value.length; b++) {
+              if (i < batches.value[b].squares.length) {
+                batches.value[b].squares[i].num = val
+              }
+            }
+          }
+        }
+        syncingNum = false
+      }
+    }, { deep: true })
 
     onUnmounted(() => {
       isLoading.value = true
@@ -1394,8 +1300,6 @@ export default defineComponent({
       mlConfig,
       mlResult,
       isMLRunning,
-      gridSettingBatchId,
-      gridFirstPoint,
       hasArrayResults,
       hasArraySamples,
       batchFillMode,
@@ -1407,7 +1311,6 @@ export default defineComponent({
       generateGridSamples,
       clearGridRegion,
       removeSquareFromBatch,
-      syncNumAcrossBatches,
       runAllBatches,
       runMLAnalysis,
       downloadMLResult,
@@ -1606,20 +1509,6 @@ canvas {
   background: #f3f4f6;
   padding: 2px 6px;
   border-radius: 4px;
-}
-
-.grid-hint {
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.7);
-  color: #fff;
-  padding: 4px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  z-index: 2;
-  pointer-events: none;
 }
 
 .ml-config-row {
