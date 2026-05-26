@@ -217,6 +217,7 @@
       runAllTooltip: '对所有 Batch 执行采样和公式计算',
       resultsTitle: '阵列结果',
       noResults: '请先执行采样与计算',
+      batchFill: '批量填写',
       mlAnalysis: 'ML 分析',
       dimReduction: '降维方法',
       dimReductionPCA: 'PCA',

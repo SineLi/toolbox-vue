@@ -118,6 +118,10 @@
     </var-card>
 
     <var-card v-if="arrayMode && hasArraySamples" class="controls-card" :title="t('imageRegression.arrayMode.resultsTitle')">
+      <div class="batch-fill-toggle">
+        <span class="label-sm">{{ t('imageRegression.arrayMode.batchFill') }}</span>
+        <var-switch v-model="batchFillMode" size="small" />
+      </div>
       <div v-for="batch in batches" :key="batch.id" class="batch-results-group">
         <div class="batch-results-header">
           <div class="batch-color-dot" :style="{ background: batch.color }"></div>
@@ -126,7 +130,7 @@
         </div>
         <var-list v-if="batch.squares.length > 0">
           <var-cell
-            v-for="square in batch.squares"
+            v-for="(square, sqIdx) in batch.squares"
             :key="square.id"
             border
             :title="t('imageRegression.sampleLabel', { id: square.id })"
@@ -137,6 +141,7 @@
                 type="number"
                 :placeholder="t('imageRegression.numberPlaceholder')"
                 @keyup.enter="focusNextSample(square.id)"
+                @input="(v: string) => syncNumAcrossBatches(batch.id, sqIdx, v)"
                 :ref="(el: any) => setSampleInputRef(el, square.id)"
               />
               <div class="sample-result">{{ square.result?.toFixed(4) || '-' }}</div>
@@ -291,6 +296,7 @@ export default defineComponent({
     const isMLRunning = ref<boolean>(false)
     const gridSettingBatchId = ref<number | null>(null)
     const gridFirstPoint = ref<{ x: number; y: number } | null>(null)
+    const batchFillMode = ref<boolean>(false)
 
     const activeBatch = computed(() => batches.value.find((b) => b.id === activeBatchId.value) || null)
     const hasArrayResults = computed(() => batches.value.some((b) => b.squares.some((s) => s.result !== undefined)))
@@ -371,6 +377,16 @@ export default defineComponent({
       if (batch) {
         batch.squares = batch.squares.filter((sq) => sq.id !== squareId)
         redrawCanvas()
+      }
+    }
+
+    function syncNumAcrossBatches(sourceBatchId: number, sourceIndex: number, value: string) {
+      if (!batchFillMode.value) return
+      for (const batch of batches.value) {
+        if (batch.id === sourceBatchId) continue
+        if (sourceIndex < batch.squares.length) {
+          batch.squares[sourceIndex].num = value
+        }
       }
     }
 
@@ -1382,6 +1398,7 @@ export default defineComponent({
       gridFirstPoint,
       hasArrayResults,
       hasArraySamples,
+      batchFillMode,
       dimReductionOptions,
       addBatch,
       removeBatch,
@@ -1390,6 +1407,7 @@ export default defineComponent({
       generateGridSamples,
       clearGridRegion,
       removeSquareFromBatch,
+      syncNumAcrossBatches,
       runAllBatches,
       runMLAnalysis,
       downloadMLResult,
@@ -1559,6 +1577,15 @@ canvas {
   text-align: center;
   color: #9ca3af;
   padding: 16px;
+}
+
+.batch-fill-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .batch-results-group {

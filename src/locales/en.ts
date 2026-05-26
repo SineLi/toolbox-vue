@@ -217,6 +217,7 @@ const en = {
       runAllTooltip: 'Run sampling and formula calculation for all batches',
       resultsTitle: 'Array Results',
       noResults: 'Please run sampling & calculate first',
+      batchFill: 'Batch Fill',
       mlAnalysis: 'ML Analysis',
       dimReduction: 'Dimensionality Reduction',
       dimReductionPCA: 'PCA',
