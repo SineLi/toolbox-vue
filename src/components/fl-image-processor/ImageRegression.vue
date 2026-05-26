@@ -78,13 +78,15 @@
           <var-icon name="aspect-ratio" :size="14" />
         </var-button>
       </div>
-      <canvas
-        ref="visibleCanvas"
-        :style="arrayMode ? { width: visibleCanvas ? visibleCanvas.width * canvasZoom + 'px' : 'auto', height: visibleCanvas ? visibleCanvas.height * canvasZoom + 'px' : 'auto' } : {}"
-        @mousemove="handleMouseMove"
-        @mouseleave="handleMouseLeave"
-        @click="handleCanvasClick"
-      ></canvas>
+      <div class="canvas-scroll">
+        <canvas
+          ref="visibleCanvas"
+          :style="arrayMode ? { width: visibleCanvas ? visibleCanvas.width * canvasZoom + 'px' : 'auto', height: visibleCanvas ? visibleCanvas.height * canvasZoom + 'px' : 'auto' } : {}"
+          @mousemove="handleMouseMove"
+          @mouseleave="handleMouseLeave"
+          @click="handleCanvasClick"
+        ></canvas>
+      </div>
     </div>
 
     <var-card v-if="!arrayMode" class="controls-card" :title="t('imageRegression.sampleListTitle')">
@@ -1397,8 +1399,6 @@ export default defineComponent({
 .canvas-container {
   width: 100%;
   max-height: 500px;
-  overflow-x: auto;
-  overflow-y: auto;
   border: 1px dashed #ccc;
   margin: 0 auto 20px;
   border-radius: 12px;
@@ -1407,6 +1407,16 @@ export default defineComponent({
 }
 
 .canvas-zoomed {
+  max-height: none;
+}
+
+.canvas-scroll {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 480px;
+}
+
+.canvas-zoomed .canvas-scroll {
   max-height: none;
 }
 
@@ -1425,12 +1435,10 @@ canvas {
   border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
   border-radius: 8px;
   padding: 2px 4px;
-  position: sticky;
-  top: 0;
+  position: absolute;
+  top: 10px;
+  right: 10px;
   z-index: 2;
-  width: fit-content;
-  margin-left: auto;
-  margin-bottom: 8px;
 }
 
 .zoom-label {
