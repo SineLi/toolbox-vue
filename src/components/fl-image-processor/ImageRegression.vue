@@ -244,23 +244,18 @@ export default defineComponent({
       squares: SamplePoint[]
     }
     type DimReductionMethod = 'pca' | 'lda'
-    type ClusteringMethod = 'kmeans' | 'hierarchical' | 'none'
     interface MLAnalysisConfig {
       dimReduction: DimReductionMethod
-      clustering: ClusteringMethod
-      kClusters: number
     }
     interface MLDataPoint {
       x: number
       y: number
       num: number
       batchResults: Record<number, number>
-      clusterLabel: number
     }
     interface MLResult {
       points: MLDataPoint[]
       explainedVariance?: number[]
-      accuracy?: number
     }
     const squares = ref<SamplePoint[]>([])
     const squareIdCounter = ref<number>(1)
@@ -295,7 +290,7 @@ export default defineComponent({
     const batches = ref<Batch[]>([])
     const batchIdCounter = ref<number>(1)
     const activeBatchId = ref<number | null>(null)
-    const mlConfig = ref<MLAnalysisConfig>({ dimReduction: 'pca', clustering: 'kmeans', kClusters: 3 })
+    const mlConfig = ref<MLAnalysisConfig>({ dimReduction: 'pca' })
     const mlResult = ref<MLResult | null>(null)
     const isMLRunning = ref<boolean>(false)
     const gridSettingBatchId = ref<number | null>(null)
@@ -307,11 +302,6 @@ export default defineComponent({
     const dimReductionOptions = computed(() => [
       { label: t('imageRegression.arrayMode.dimReductionPCA'), value: 'pca' },
       { label: t('imageRegression.arrayMode.dimReductionLDA'), value: 'lda' },
-    ])
-    const clusteringOptions = computed(() => [
-      { label: t('imageRegression.arrayMode.clusteringNone'), value: 'none' },
-      { label: t('imageRegression.arrayMode.clusteringKMeans'), value: 'kmeans' },
-      { label: t('imageRegression.arrayMode.clusteringHierarchical'), value: 'hierarchical' },
     ])
 
     function addBatch() {
@@ -1410,7 +1400,6 @@ export default defineComponent({
       gridFirstPoint,
       hasArrayResults,
       dimReductionOptions,
-      clusteringOptions,
       sampleModeOptions,
       addBatch,
       removeBatch,
