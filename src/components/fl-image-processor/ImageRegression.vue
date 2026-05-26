@@ -648,25 +648,18 @@ export default defineComponent({
       const inst = chartInstance ?? initChartWithRetry()
       if (!inst || !mlResult.value) return
 
-      const clusterColors = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399', '#9B59B6', '#1ABC9C', '#E74C3C']
+      const colors = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399', '#9B59B6', '#1ABC9C', '#E74C3C']
       const seriesMap = new Map<string, echarts.SeriesOption>()
 
       for (const pt of mlResult.value.points) {
-        const seriesName = mlConfig.value.clustering !== 'none'
-          ? t('imageRegression.arrayMode.clusterLabel', { id: pt.clusterLabel })
-          : `num=${pt.num}`
-
+        const seriesName = `num=${pt.num}`
         if (!seriesMap.has(seriesName)) {
           seriesMap.set(seriesName, {
             name: seriesName,
             type: 'scatter',
             data: [],
             symbolSize: 10,
-            itemStyle: {
-              color: mlConfig.value.clustering !== 'none'
-                ? clusterColors[pt.clusterLabel % clusterColors.length]
-                : clusterColors[pt.num % clusterColors.length],
-            },
+            itemStyle: { color: colors[pt.num % colors.length] },
           })
         }
         const series = seriesMap.get(seriesName)! as any
