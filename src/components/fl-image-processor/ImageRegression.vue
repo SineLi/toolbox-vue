@@ -120,7 +120,7 @@
       </var-list>
     </var-card>
 
-    <var-card v-if="arrayMode && hasArrayResults" class="controls-card" :title="t('imageRegression.arrayMode.resultsTitle')">
+    <var-card v-if="arrayMode && hasArraySamples" class="controls-card" :title="t('imageRegression.arrayMode.resultsTitle')">
       <div v-for="batch in batches" :key="batch.id" class="batch-results-group">
         <div class="batch-results-header">
           <div class="batch-color-dot" :style="{ background: batch.color }"></div>
@@ -299,6 +299,7 @@ export default defineComponent({
 
     const activeBatch = computed(() => batches.value.find((b) => b.id === activeBatchId.value) || null)
     const hasArrayResults = computed(() => batches.value.some((b) => b.squares.some((s) => s.result !== undefined)))
+    const hasArraySamples = computed(() => batches.value.some((b) => b.squares.length > 0))
 
     const dimReductionOptions = computed(() => [
       { label: t('imageRegression.arrayMode.dimReductionPCA'), value: 'pca' },
@@ -1356,6 +1357,7 @@ export default defineComponent({
       gridSettingBatchId,
       gridFirstPoint,
       hasArrayResults,
+      hasArraySamples,
       dimReductionOptions,
       sampleModeOptions,
       addBatch,
