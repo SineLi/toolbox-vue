@@ -57,23 +57,20 @@
             </div>
           </div>
           <div class="batch-config-row">
-            <var-select v-model="batch.sampleMode" size="small" :options="sampleModeOptions" @click.stop />
-            <template v-if="batch.sampleMode === 'grid'">
-              <div class="batch-field">
-                <span class="label-sm">{{ t('imageRegression.arrayMode.gridRows') }}</span>
-                <var-input v-model.number="batch.gridConfig.rows" type="number" size="small" @click.stop />
-              </div>
-              <div class="batch-field">
-                <span class="label-sm">{{ t('imageRegression.arrayMode.gridCols') }}</span>
-                <var-input v-model.number="batch.gridConfig.cols" type="number" size="small" @click.stop />
-              </div>
-              <var-button size="mini" :type="gridSettingBatchId === batch.id ? 'warning' : 'primary'" @click.stop="toggleGridRegionSetting(batch.id)">
-                {{ gridSettingBatchId === batch.id ? t('imageRegression.arrayMode.gridRegionClear') : t('imageRegression.arrayMode.gridRegion') }}
-              </var-button>
-              <var-button v-if="batch.gridConfig.region" size="mini" type="success" @click.stop="generateGridSamples(batch)">
-                {{ t('imageRegression.arrayMode.sampleModeGrid') }}
-              </var-button>
-            </template>
+            <div class="batch-field">
+              <span class="label-sm">{{ t('imageRegression.arrayMode.gridRows') }}</span>
+              <var-input v-model.number="batch.gridConfig.rows" type="number" size="small" @click.stop />
+            </div>
+            <div class="batch-field">
+              <span class="label-sm">{{ t('imageRegression.arrayMode.gridCols') }}</span>
+              <var-input v-model.number="batch.gridConfig.cols" type="number" size="small" @click.stop />
+            </div>
+            <var-button size="mini" :type="gridSettingBatchId === batch.id ? 'warning' : 'primary'" @click.stop="toggleGridRegionSetting(batch.id)">
+              {{ gridSettingBatchId === batch.id ? t('imageRegression.arrayMode.gridRegionClear') : t('imageRegression.arrayMode.gridRegion') }}
+            </var-button>
+            <var-button v-if="batch.gridConfig.region" size="mini" type="success" @click.stop="generateGridSamples(batch)">
+              {{ t('imageRegression.arrayMode.sampleModeGrid') }}
+            </var-button>
           </div>
         </div>
       </div>
@@ -227,7 +224,6 @@ export default defineComponent({
       stdDev?: number
       avgRGB?: { r: number; g: number; b: number }
     }
-    type BatchSampleMode = 'manual' | 'grid'
     interface BatchGridConfig {
       rows: number
       cols: number
@@ -237,7 +233,6 @@ export default defineComponent({
       id: number
       label: string
       color: string
-      sampleMode: BatchSampleMode
       gridConfig: BatchGridConfig
       sampleSize: number
       randomSeed: string
@@ -312,7 +307,6 @@ export default defineComponent({
         id,
         label: `Batch ${id}`,
         color: BATCH_COLORS[(id - 1) % BATCH_COLORS.length],
-        sampleMode: 'manual',
         gridConfig: { rows: 5, cols: 5 },
         sampleSize: sampleSize.value,
         randomSeed: randomSeed.value || '42',
@@ -371,11 +365,6 @@ export default defineComponent({
       gridFirstPoint.value = null
       redrawCanvas()
     }
-
-    const sampleModeOptions = computed(() => [
-      { label: t('imageRegression.arrayMode.sampleModeManual'), value: 'manual' },
-      { label: t('imageRegression.arrayMode.sampleModeGrid'), value: 'grid' },
-    ])
 
     function removeSquareFromBatch(batchId: number, squareId: number) {
       const batch = batches.value.find((b) => b.id === batchId)
@@ -1373,7 +1362,6 @@ export default defineComponent({
       hasArrayResults,
       hasArraySamples,
       dimReductionOptions,
-      sampleModeOptions,
       addBatch,
       removeBatch,
       selectBatch,
