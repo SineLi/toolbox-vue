@@ -178,11 +178,6 @@
     <var-card v-if="arrayMode" class="controls-card" :title="t('imageRegression.arrayMode.mlAnalysis')">
       <div class="ml-config-row">
         <var-select v-model="mlConfig.dimReduction" :options="dimReductionOptions" :placeholder="t('imageRegression.arrayMode.dimReduction')" />
-        <var-select v-model="mlConfig.clustering" :options="clusteringOptions" :placeholder="t('imageRegression.arrayMode.clustering')" />
-        <div v-if="mlConfig.clustering !== 'none'" class="batch-field">
-          <span class="label-sm">{{ t('imageRegression.arrayMode.kClusters') }}</span>
-          <var-slider v-model="mlConfig.kClusters" :min="2" :max="10" track-color="#e5e7eb" />
-        </div>
         <var-button type="primary" :loading="isMLRunning" :disabled="!hasArrayResults" @click="runMLAnalysis">
           {{ t('imageRegression.arrayMode.runAnalysis') }}
         </var-button>
