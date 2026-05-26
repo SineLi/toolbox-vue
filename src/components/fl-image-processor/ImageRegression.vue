@@ -127,6 +127,43 @@ export default defineComponent({
       stdDev?: number
       avgRGB?: { r: number; g: number; b: number }
     }
+    type BatchSampleMode = 'manual' | 'grid'
+    interface BatchGridConfig {
+      rows: number
+      cols: number
+      region?: { x: number; y: number; width: number; height: number }
+    }
+    interface Batch {
+      id: number
+      label: string
+      color: string
+      sampleMode: BatchSampleMode
+      gridConfig: BatchGridConfig
+      sampleSize: number
+      randomSeed: string
+      formula: string
+      squares: SamplePoint[]
+    }
+    type DimReductionMethod = 'pca' | 'lda'
+    type ClusteringMethod = 'kmeans' | 'hierarchical' | 'none'
+    interface MLAnalysisConfig {
+      dimReduction: DimReductionMethod
+      clustering: ClusteringMethod
+      kClusters: number
+    }
+    interface MLDataPoint {
+      x: number
+      y: number
+      batchId: number
+      batchLabel: string
+      clusterLabel: number
+      sampleId: number
+    }
+    interface MLResult {
+      points: MLDataPoint[]
+      explainedVariance?: number[]
+      accuracy?: number
+    }
     const squares = ref<SamplePoint[]>([])
     const squareIdCounter = ref<number>(1)
     const currentImg = ref<HTMLImageElement | null>(null)
