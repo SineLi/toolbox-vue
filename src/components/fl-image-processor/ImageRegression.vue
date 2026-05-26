@@ -66,10 +66,17 @@
         <var-loading type="wave" />
       </div>
       <div v-if="arrayMode" class="zoom-controls">
-        <var-button size="mini" @click="zoomOut">−</var-button>
+        <var-button size="small" text @click="zoomOut" :disabled="canvasZoom <= 0.25">
+          <var-icon name="minus" :size="14" />
+        </var-button>
         <span class="zoom-label">{{ Math.round(canvasZoom * 100) }}%</span>
-        <var-button size="mini" @click="zoomIn">+</var-button>
-        <var-button size="mini" @click="zoomReset">{{ t('imageRegression.arrayMode.zoomReset') }}</var-button>
+        <var-button size="small" text @click="zoomIn" :disabled="canvasZoom >= 5">
+          <var-icon name="plus" :size="14" />
+        </var-button>
+        <div class="zoom-divider"></div>
+        <var-button size="small" text @click="zoomReset">
+          <var-icon name="aspect-ratio" :size="14" />
+        </var-button>
       </div>
       <canvas
         ref="visibleCanvas"
@@ -1409,16 +1416,33 @@ canvas {
 }
 
 .zoom-controls {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
+  gap: 2px;
+  background: color-mix(in srgb, var(--color-body, #fff) 90%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: 8px;
+  padding: 2px 4px;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
 }
 
 .zoom-label {
   font-size: 12px;
-  min-width: 40px;
+  font-weight: 600;
+  min-width: 44px;
   text-align: center;
+  user-select: none;
+}
+
+.zoom-divider {
+  width: 1px;
+  height: 16px;
+  background: color-mix(in srgb, currentColor 16%, transparent);
+  margin: 0 2px;
 }
 
 .loading-mask {
