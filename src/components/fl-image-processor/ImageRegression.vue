@@ -747,7 +747,14 @@ export default defineComponent({
         currentImg.value = img
 
         if (visibleCanvas.value && currentImg.value) {
-          scale.value = currentImg.value.height > 240 ? 240 / currentImg.value.height : 1
+          const container = visibleCanvas.value.parentElement?.parentElement
+          const availWidth = (container?.clientWidth ?? 800) - 20
+          const maxHeight = 480
+          scale.value = Math.min(
+            availWidth / currentImg.value.width,
+            maxHeight / currentImg.value.height,
+            1,
+          )
           const scaledWidth = currentImg.value.width * scale.value
           const scaledHeight = currentImg.value.height * scale.value
           visibleCanvas.value.width = scaledWidth
