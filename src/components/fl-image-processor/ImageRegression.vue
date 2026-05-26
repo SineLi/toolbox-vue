@@ -1416,18 +1416,21 @@ canvas {
 }
 
 .zoom-controls {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 2px;
   background: color-mix(in srgb, var(--color-body, #fff) 90%, transparent);
   backdrop-filter: blur(8px);
   border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
   border-radius: 8px;
   padding: 2px 4px;
-  position: absolute;
-  top: 10px;
-  right: 10px;
+  position: sticky;
+  top: 0;
   z-index: 2;
+  width: fit-content;
+  margin-left: auto;
+  margin-bottom: 8px;
 }
 
 .zoom-label {
