@@ -255,3 +255,22 @@ manualChunks: {
 
 
 > 本文档由人工智能生成
+## 🔐 GitHub CI/CD 与 main 保护建议
+
+本仓库已提供：
+
+- `CI` 工作流：在 `pull_request`/`push(main)` 上执行 `Type Check`、`Lint`、`Build`，并附带 `Security Audit`（非阻断）
+- `Deploy` 工作流：在 `push(main)` 后将 `dist/` 自动部署到 GitHub Pages
+
+为了确保合并到 `main` 的代码质量，请在仓库设置中启用分支保护：
+
+1. 进入 **Settings → Branches → Add rule**，目标分支填写 `main`
+2. 勾选 **Require a pull request before merging**，至少 `1` 个 reviewer
+3. 勾选 **Require status checks to pass before merging**，并将以下检查设为必需：
+   - `Type Check`
+   - `Lint`
+   - `Build`
+4. 勾选 **Require branches to be up to date before merging**
+5. 在 **Settings → Environments → github-pages** 中配置 required reviewers（用于部署环境保护）
+
+这样可以保证：未通过核心校验的代码无法合并到 `main`，且 `main` 始终可构建并可部署。
