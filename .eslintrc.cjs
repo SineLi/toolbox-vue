@@ -12,6 +12,14 @@ module.exports = {
     sourceType: 'module',
     extraFileExtensions: ['.vue'],
   },
-  extends: [],
-  rules: {},
+  extends: [
+    'eslint:recommended',
+    'plugin:vue/vue3-essential',
+    'plugin:@typescript-eslint/recommended',
+  ],
+  rules: {
+    '@typescript-eslint/no-explicit-any': 'off',
+    'no-undef': 'off',
+    'no-extra-semi': 'off',
+  },
 }

@@ -267,9 +267,9 @@ manualChunks: {
 1. 进入 **Settings → Branches → Add rule**，目标分支填写 `main`
 2. 勾选 **Require a pull request before merging**，至少 `1` 个 reviewer
 3. 勾选 **Require status checks to pass before merging**，并将以下检查设为必需：
-   - `Type Check`
-   - `Lint`
-   - `Build`
+   - `Type Check`（对应 job: `typecheck`）
+   - `Lint`（对应 job: `lint`）
+   - `Build`（对应 job: `build`）
 4. 勾选 **Require branches to be up to date before merging**
 5. 在 **Settings → Environments → github-pages** 中配置 required reviewers（用于部署环境保护）
 
